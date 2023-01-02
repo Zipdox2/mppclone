@@ -70,19 +70,6 @@ $(function () {
 
   var gMidiOutTest;
 
-  if (!Array.prototype.indexOf) {
-    Array.prototype.indexOf = function (elt /*, from*/) {
-      var len = this.length >>> 0;
-      var from = Number(arguments[1]) || 0;
-      from = (from < 0) ? Math.ceil(from) : Math.floor(from);
-      if (from < 0) from += len;
-      for (; from < len; from++) {
-        if (from in this && this[from] === elt) return from;
-      }
-      return -1;
-    };
-  }
-
   window.requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame
     || window.webkitRequestAnimationFrame || window.msRequestAnimationFrame
     || function (cb) { setTimeout(cb, 1000 / 30); };
@@ -194,18 +181,20 @@ $(function () {
 
 
 
-  var Rect = function (x, y, w, h) {
+class Rect{
+  constructor(x, y, w, h) {
     this.x = x;
     this.y = y;
     this.w = w;
     this.h = h;
     this.x2 = x + w;
     this.y2 = y + h;
-  };
-  Rect.prototype.contains = function (x, y) {
-    return (x >= this.x && x <= this.x2 && y >= this.y && y <= this.y2);
-  };
+  }
 
+  contains(x, y) {
+    return (x >= this.x && x <= this.x2 && y >= this.y && y <= this.y2);
+  }
+}
   const BASIC_PIANO_SCALES = {
     // ty https://www.pianoscales.org/
     // major keys
@@ -394,35 +383,37 @@ $(function () {
 
   ////////////////////////////////////////////////////////////////
 
-  var AudioEngine = function () {
-  };
-
-  AudioEngine.prototype.init = function (cb) {
+class AudioEngine{
+  init(cb){
     this.volume = 0.6;
     this.sounds = {};
     this.paused = true;
     return this;
-  };
+  }
 
-  AudioEngine.prototype.load = function (id, url, cb) {
-  };
+  load(id, url, cb){
+  }
 
-  AudioEngine.prototype.play = function () {
-  };
+  play(){
+  }
 
-  AudioEngine.prototype.stop = function () {
-  };
+  stop(){
+  }
 
-  AudioEngine.prototype.setVolume = function (vol) {
+  setVolume(vol){
     this.volume = vol;
-  };
+  }
 
-  AudioEngine.prototype.resume = function () {
+  resume(){
     this.paused = false;
-  };
+  }
+}
 
 
-  AudioEngineWeb = function () {
+
+class AudioEngineWeb extends AudioEngine{
+  constructor(){
+    super();
     this.threshold = 0;
     this.worker = new Worker("/workerTimer.js");
     var self = this;
@@ -435,12 +426,10 @@ $(function () {
           self.actualStop(event.data.args.id, event.data.args.time, event.data.args.part_id);
         }
     }
-  };
+  }
 
-  AudioEngineWeb.prototype = new AudioEngine();
-
-  AudioEngineWeb.prototype.init = function (cb) {
-    AudioEngine.prototype.init.call(this);
+  init(cb){
+    super.init(cb);
 
     this.context = new AudioContext({ latencyHint: 'interactive' });
 
@@ -468,9 +457,9 @@ $(function () {
 
     if (cb) setTimeout(cb, 0);
     return this;
-  };
+  }
 
-  AudioEngineWeb.prototype.load = function (id, url, cb) {
+  load(id, url, cb) {
     var audio = this;
     var req = new XMLHttpRequest();
     req.open("GET", url);
@@ -496,9 +485,9 @@ $(function () {
       }
     });
     req.send();
-  };
+  }
 
-  AudioEngineWeb.prototype.actualPlay = function (id, vol, time, part_id) { //the old play(), but with time insted of delay_ms.
+  actualPlay(id, vol, time, part_id) { //the old play(), but with time insted of delay_ms.
     if (this.paused) return;
     if (!this.sounds.hasOwnProperty(id)) return;
     var source = this.context.createBufferSource();
@@ -525,7 +514,7 @@ $(function () {
     }
   }
 
-  AudioEngineWeb.prototype.play = function (id, vol, delay_ms, part_id) {
+  play(id, vol, delay_ms, part_id) {
     if (!this.sounds.hasOwnProperty(id)) return;
     var time = this.context.currentTime + (delay_ms / 1000); //calculate time on note receive.
     var delay = delay_ms - this.threshold;
@@ -535,7 +524,7 @@ $(function () {
     }
   }
 
-  AudioEngineWeb.prototype.actualStop = function (id, time, part_id) {
+  actualStop(id, time, part_id) {
     if (this.playings.hasOwnProperty(id) && this.playings[id] && this.playings[id].part_id === part_id) {
       var gain = this.playings[id].gain.gain;
       gain.setValueAtTime(gain.value, time);
@@ -550,45 +539,27 @@ $(function () {
 
       this.playings[id] = null;
     }
-  };
+  }
 
-  AudioEngineWeb.prototype.stop = function (id, delay_ms, part_id) {
+  stop(id, delay_ms, part_id) {
     var time = this.context.currentTime + (delay_ms / 1000);
     var delay = delay_ms - this.threshold;
     if (delay <= 0) this.actualStop(id, time, part_id);
     else {
       this.worker.postMessage({ delay: delay, args: { action: 1/*stop*/, id: id, time: time, part_id: part_id } });
     }
-  };
+  }
 
-  AudioEngineWeb.prototype.setVolume = function (vol) {
-    AudioEngine.prototype.setVolume.call(this, vol);
+  setVolume(vol){
+    super.setVolume(vol);
     this.masterGain.gain.value = this.volume;
-  };
+  }
 
-  AudioEngineWeb.prototype.resume = function () {
+  resume(){
     this.paused = false;
     this.context.resume();
-  };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  }
+}
 
 
 
@@ -600,41 +571,36 @@ $(function () {
 
   ////////////////////////////////////////////////////////////////
 
-  var Renderer = function () {
-  };
-
-  Renderer.prototype.init = function (piano) {
+class Renderer{
+  init(piano) {
     this.piano = piano;
     this.resize();
     return this;
-  };
+  }
 
-  Renderer.prototype.resize = function (width, height) {
+  resize(width, height) {
     if (typeof width == "undefined") width = $(this.piano.rootElement).width();
     if (typeof height == "undefined") height = Math.floor(width * 0.2);
     $(this.piano.rootElement).css({ "height": height + "px", marginTop: Math.floor($(window).height() / 2 - height / 2) + "px" });
     this.width = width * window.devicePixelRatio;
     this.height = height * window.devicePixelRatio;
-  };
+  }
 
-  Renderer.prototype.visualize = function (key, color) {
-  };
+  visualize(key, color) {
+  }
+}
 
+class CanvasRenderer extends Renderer{
+  constructor(){
+    super();
+  }
 
-
-
-  var CanvasRenderer = function () {
-    Renderer.call(this);
-  };
-
-  CanvasRenderer.prototype = new Renderer();
-
-  CanvasRenderer.prototype.init = function (piano) {
+  init(piano) {
     this.canvas = document.createElement("canvas");
     this.ctx = this.canvas.getContext("2d");
     piano.rootElement.appendChild(this.canvas);
 
-    Renderer.prototype.init.call(this, piano); // calls resize()
+    super.init(piano); // calls resize()
 
     // create render loop
     var self = this;
@@ -690,10 +656,10 @@ $(function () {
     });*/
 
     return this;
-  };
+  }
 
-  CanvasRenderer.prototype.resize = function (width, height) {
-    Renderer.prototype.resize.call(this, width, height);
+  resize(width, height) {
+    super.resize(width, height);
     if (this.width < 52 * 2) this.width = 52 * 2;
     if (this.height < this.width * 0.2) this.height = Math.floor(this.width * 0.2);
     this.canvas.width = this.width;
@@ -813,14 +779,14 @@ $(function () {
           this.whiteKeyWidth, this.whiteKeyHeight);
       }
     }
-  };
+  }
 
-  CanvasRenderer.prototype.visualize = function (key, color) {
+  visualize(key, color) {
     key.timePlayed = Date.now();
     key.blips.push({ "time": key.timePlayed, "color": color });
-  };
+  }
 
-  CanvasRenderer.prototype.redraw = function () {
+  redraw() {
     var now = Date.now();
     var timeLoadedEnd = now - 1000;
     var timePlayedEnd = now - 100;
@@ -929,9 +895,9 @@ $(function () {
       }
     }
     this.ctx.restore();
-  };
+  }
 
-  CanvasRenderer.prototype.renderNoteLyrics = function () {
+  renderNoteLyrics() {
     // render lyric
     for (var part_id in this.noteLyrics) {
       if (!this.noteLyrics.hasOwnProperty(i)) continue;
@@ -943,9 +909,9 @@ $(function () {
       this.ctx.globalAlpha = alpha - ((now - key.lyric.time) / 1000);
       this.ctx.fillRect(x, y, 10, 10);
     }
-  };
+  }
 
-  CanvasRenderer.prototype.getHit = function (x, y) {
+  getHit(x, y) {
     for (var j = 0; j < 2; j++) {
       var sharp = j ? false : true; // black keys first
       for (var i in this.piano.keys) {
@@ -962,15 +928,14 @@ $(function () {
       }
     }
     return null;
-  };
+  }
 
-
-  CanvasRenderer.isSupported = function () {
+  isSupported() {
     var canvas = document.createElement("canvas");
     return !!(canvas.getContext && canvas.getContext("2d"));
-  };
+  }
 
-  CanvasRenderer.translateMouseEvent = function (evt) {
+  static translateMouseEvent(evt) {
     var element = evt.target;
     var offx = 0;
     var offy = 0;
@@ -983,16 +948,8 @@ $(function () {
       x: (evt.pageX - offx) * window.devicePixelRatio,
       y: (evt.pageY - offy) * window.devicePixelRatio
     }
-  };
-
-
-
-
-
-
-
-
-
+  }
+}
 
 
   // Soundpack Stuff by electrashave ♥
@@ -1005,7 +962,8 @@ $(function () {
     var soundDomain = 'https://mppclone.com';
   }
 
-  function SoundSelector(piano) {
+class SoundSelector{
+  constructor(piano) {
     this.initialized = false;
     this.keys = piano.keys;
     this.loading = {};
@@ -1016,7 +974,7 @@ $(function () {
     this.addPack({ name: "MPP Classic", keys: Object.keys(this.piano.keys), ext: ".mp3", url: "/sounds/mppclassic/" });
   }
 
-  SoundSelector.prototype.addPack = function (pack, load) {
+  addPack(pack, load) {
     var self = this;
     self.loading[pack.url || pack] = true;
     function add(obj) {
@@ -1057,13 +1015,13 @@ $(function () {
         add(json);
       });
     } else add(pack); //validate packs??
-  };
+  }
 
-  SoundSelector.prototype.addPacks = function (packs) {
+  addPacks(packs) {
     for (var i = 0; packs.length > i; i++) this.addPack(packs[i]);
-  };
+  }
 
-  SoundSelector.prototype.init = function () {
+  init() {
     var self = this;
     if (self.initialized) return console.warn("Sound selector already initialized!");
 
@@ -1088,9 +1046,9 @@ $(function () {
     });
     self.initialized = true;
     self.loadPack(self.soundSelection, true);
-  };
+  }
 
-  SoundSelector.prototype.loadPack = function (pack, f) {
+  loadPack(pack, f) {
     for (var i = 0; this.packs.length > i; i++) {
       var p = this.packs[i];
       if (p.name == pack) {
@@ -1126,9 +1084,9 @@ $(function () {
     }
     if (localStorage) localStorage.soundSelection = pack.name;
     this.soundSelection = pack.name;
-  };
+  }
 
-  SoundSelector.prototype.removePack = function (name) {
+  removePack(name) {
     var found = false;
     for (var i = 0; this.packs.length > i; i++) {
       var pack = this.packs[i];
@@ -1139,12 +1097,8 @@ $(function () {
       }
     }
     if (!found) console.warn("Sound pack not found!");
-  };
-
-
-
-
-
+  }
+}
 
 
 
@@ -1155,7 +1109,8 @@ $(function () {
 
   ////////////////////////////////////////////////////////////////
 
-  var PianoKey = function (note, octave) {
+class PianoKey{
+  constructor(note, octave) {
     this.note = note + octave;
     this.baseNote = note;
     this.octave = octave;
@@ -1165,9 +1120,11 @@ $(function () {
     this.domElement = null;
     this.timePlayed = 0;
     this.blips = [];
-  };
+  }
+}
 
-  var Piano = function (rootElement) {
+class Piano{
+  constructor(rootElement) {
 
     var piano = this;
     piano.rootElement = rootElement;
@@ -1215,9 +1172,9 @@ $(function () {
     window.AudioContext = window.AudioContext || window.webkitAudioContext || undefined;
     var audio_engine = AudioEngineWeb;
     this.audio = new audio_engine().init();
-  };
+  }
 
-  Piano.prototype.play = function (note, vol, participant, delay_ms, lyric) {
+  play(note, vol, participant, delay_ms, lyric) {
     if (!this.keys.hasOwnProperty(note) || !participant) return;
     var key = this.keys[note];
     if (key.loaded) this.audio.play(key.note, vol, delay_ms, participant.id);
@@ -1234,14 +1191,19 @@ $(function () {
         jq_namediv.removeClass("play");
       }, 30);
     }, delay_ms || 0);
-  };
+  }
 
-  Piano.prototype.stop = function (note, participant, delay_ms) {
+  stop(note, participant, delay_ms) {
     if (!this.keys.hasOwnProperty(note)) return;
     var key = this.keys[note];
     if (key.loaded) this.audio.stop(key.note, delay_ms, participant.id);
     if (gMidiOutTest) gMidiOutTest(key.note, 0, delay_ms, participant.id);
-  };
+  }
+}
+
+  
+
+
 
   var gPiano = new Piano(document.getElementById("piano"));
 
@@ -2534,9 +2496,10 @@ $(function () {
 
   ////////////////////////////////////////////////////////////////
 
-  var Notification = function (par) {
+class Notification extends EventEmitter{
+  constructor(par) {
+    super();
     if (this instanceof Notification === false) throw ("yeet");
-    EventEmitter.call(this);
 
     var par = par || {};
 
@@ -2586,10 +2549,7 @@ $(function () {
     return this;
   }
 
-  mixin(Notification.prototype, EventEmitter.prototype);
-  Notification.prototype.constructor = Notification;
-
-  Notification.prototype.position = function () {
+  position() {
     var pos = this.target.offset();
     var x = pos.left - (this.domElement.width() / 2) + (this.target.width() / 4);
     var y = pos.top - this.domElement.height() - 8;
@@ -2599,20 +2559,17 @@ $(function () {
     }
     if (x < 0) x = 0;
     this.domElement.offset({ left: x, top: y });
-  };
+  }
 
-  Notification.prototype.close = function () {
+  close() {
     var self = this;
     window.removeEventListener("resize", this.onresize);
     this.domElement.fadeOut(500, function () {
       self.domElement.remove();
       self.emit("close");
     });
-  };
-
-
-
-
+  }
+}
 
 
 
@@ -3872,7 +3829,8 @@ $(function () {
   var osc1_sustain = 0.5;
   var osc1_release = 2.0;
 
-  function synthVoice(note_name, time) {
+class synthVoice{
+  constructor(note_name, time) {
     var note_number = MIDI_KEY_NAMES.indexOf(note_name);
     note_number = note_number + 9 - MIDI_TRANSPOSE;
     var freq = Math.pow(2, (note_number - 69) / 12) * 440.0;
@@ -3889,11 +3847,12 @@ $(function () {
     this.gain.gain.linearRampToValueAtTime(osc1_sustain, time + osc1_attack + osc1_decay);
   }
 
-  synthVoice.prototype.stop = function (time) {
+  stop(time) {
     //this.gain.gain.setValueAtTime(osc1_sustain, time);
     this.gain.gain.linearRampToValueAtTime(0, time + osc1_release);
     this.osc.stop(time + osc1_release);
-  };
+  }
+}
 
   (function () {
     var button = document.getElementById("synth-btn");
