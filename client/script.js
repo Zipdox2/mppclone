@@ -1329,7 +1329,7 @@ class Piano{
   }
 
   var wssport = 8443;
-  if (window.location.hostname === "localhost" && false) {
+  if (window.location.hostname === "localhost") {
     var gClient = new Client("ws://localhost:8443");
   } else {
     var gClient = new Client('wss://mppclone.com:8443');
@@ -2324,7 +2324,6 @@ class Piano{
       menu.style.top = pos.top + pos.height + 15 + 'px';
       menu.style.left = pos.left + 6 + 'px';
       menu.style.background = part.color || "black";
-      console.log(menu);
       menu.onmousedown = menu.ontouchstart = function (evt) {
         evt.stopPropagation();
         var target = evt.target;
@@ -2833,7 +2832,6 @@ class Notification extends EventEmitter{
     }
     document.onmousedown = doc_click;
     document.querySelector("#room .more .info")?.remove();
-    console.log('came here');
     document.querySelector("#room .more").style.display = 'block';
     gClient.sendArray([{ m: "+ls" }]);
   }
@@ -3271,7 +3269,7 @@ class Notification extends EventEmitter{
     document.querySelector("#chat input").addEventListener("keydown", function (evt) {
       if (evt.keyCode == 13) {
         if (MPP.client.isConnected()) {
-          var message = this.val;
+          var message = this.value;
           if (message.length == 0) {
             if (gIsDming) {
               gIsDming = false;
@@ -3395,11 +3393,11 @@ class Notification extends EventEmitter{
             li.appendChild(sentDm);
           } else if (msg.recipient._id === gClient.user._id) { //received dm
             receivedDm = document.createElement('span');
-            sentDm.className = 'receivedDm';
+            receivedDm.className = 'receivedDm';
             li.appendChild(receivedDm);
           } else { //someone else's dm
             otherDm = document.createElement('span');
-            sentDm.className = 'otherDm';
+            otherDm.className = 'otherDm';
             li.appendChild(otherDm);
             isSpecialDm = true;
           }
