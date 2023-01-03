@@ -2654,7 +2654,7 @@ class Notification extends EventEmitter{
   position() {
     const pos = this.target.getBoundingClientRect();
     const domElementPos = this.domElement.getBoundingClientRect();
-    var x = pos.left - (domElementPos.width / 2) + (this.target.getBoundingClientRect().width / 4);
+    var x = pos.left - (domElementPos.width / 2) + (pos.width / 4);
     var y = pos.top - domElementPos.height - 8;
     var width = domElementPos.width;
     const bodyPos = document.body.getBoundingClientRect();
@@ -2662,8 +2662,8 @@ class Notification extends EventEmitter{
       x -= ((x + width) - bodyPos.width);
     }
     if (x < 0) x = 0;
-    this.domElement.style.left = x;
-    this.domElement.style.top = y;
+    this.domElement.style.left = x + 'px';
+    this.domElement.style.top = y + 'px';
   }
 
   close() {
