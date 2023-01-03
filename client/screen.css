@@ -410,6 +410,7 @@ input[type="range"]:hover {
     background: url(/crown.png) no-repeat;
     cursor: pointer;
     font-size: 10px;
+    transition-timing-function: linear;
 }
 
 #crown span {
@@ -1389,10 +1390,6 @@ input[type="range"]:hover {
 
 .spin {
     animation: spin 1s linear infinite;
-    -webkit-animation: spin 1s linear infinite;
-    -moz-animation: spin 1s linear infinite;
-    -o-animation: spin 1s linear infinite;
-    -ms-animation: spin 1s linear infinite;
 }
 
 .top-button {
@@ -1459,42 +1456,22 @@ code {
     text-shadow: none;
 }
 
-@-webkit-keyframes spin {
+@keyframes spin {
     0% {
-        -webkit-transform: rotate(0);
+        transform: rotate(0);
     }
 
     100% {
-        -webkit-transform: rotate(360deg);
+        transform: rotate(360deg);
     }
 }
 
-@-moz-keyframes spin {
-    0% {
-        -moz-transform: rotate(0);
-    }
-
-    100% {
-        -moz-transform: rotate(360deg);
-    }
+@keyframes fadeIn {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
 }
 
-@-o-keyframes spin {
-    0% {
-        -o-transform: rotate(0);
-    }
-
-    100% {
-        -o-transform: rotate(360deg);
-    }
-}
-
-@-ms-keyframes spin {
-    0% {
-        -ms-transform: rotate(0);
-    }
-
-    100% {
-        -ms-transform: rotate(360deg);
-    }
+@keyframes fadeOut {
+    0% { opacity: 1; }
+    100% { opacity: 0; }
 }

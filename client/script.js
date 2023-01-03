@@ -1,6 +1,6 @@
 // 钢琴
 
-$(function () {
+(function () {
 
   console.log("%cWelcome to MPP's developer console!", "color:blue; font-size:20px;");
   console.log("%cCheck out the source code: https://github.com/LapisHusky/mppclone/tree/main/client\nGuide for coders and bot developers: https://docs.google.com/document/d/1OrxwdLD1l1TE8iau6ToETVmnLuLXyGBhA0VfAY1Lf14/edit?usp=sharing", "color:gray; font-size:12px;")
@@ -341,14 +341,14 @@ class Rect{
 
     var perform = function (lang) {
       if (typeof lang === "undefined") lang = language;
-      $(".translate").each(function (i, ele) {
-        var th = $(this);
+      document.querySelectorAll(".translate").forEach(function (ele) {
+        var th = ele;
         if (ele.tagName && ele.tagName.toLowerCase() == "input") {
           if (typeof ele.placeholder != "undefined") {
-            th.attr("placeholder", get(th.attr("placeholder"), lang))
+            th.setAttribute("placeholder", get(th.getAttribute("placeholder"), lang))
           }
         } else {
-          th.text(get(th.text(), lang));
+          th.textContent = get(th.textContent, lang);
         }
       });
     };
@@ -579,9 +579,10 @@ class Renderer{
   }
 
   resize(width, height) {
-    if (typeof width == "undefined") width = $(this.piano.rootElement).width();
+    if (typeof width == "undefined") width = this.piano.rootElement.clientWidth;
     if (typeof height == "undefined") height = Math.floor(width * 0.2);
-    $(this.piano.rootElement).css({ "height": height + "px", marginTop: Math.floor($(window).height() / 2 - height / 2) + "px" });
+    this.piano.rootElement.style.height = height + "px";
+    this.piano.rootElement.style.marginTop = Math.floor(window.innerHeight / 2 - height / 2) + "px";
     this.width = width * window.devicePixelRatio;
     this.height = height * window.devicePixelRatio;
   }
@@ -613,7 +614,7 @@ class CanvasRenderer extends Renderer{
     // add event listeners
     var mouse_down = false;
     var last_key = null;
-    $(piano.rootElement).mousedown(function (event) {
+    piano.rootElement.addEventListener('mousedown', function (event) {
       mouse_down = true;
       //event.stopPropagation();
       if (!gNoPreventDefault) event.preventDefault();
@@ -625,7 +626,7 @@ class CanvasRenderer extends Renderer{
         last_key = hit.key;
       }
     });
-    piano.rootElement.addEventListener("touchstart", function (event) {
+    piano.rootElement.addEventListener('touchstart', function (event) {
       mouse_down = true;
       //event.stopPropagation();
       if (!gNoPreventDefault) event.preventDefault();
@@ -638,14 +639,14 @@ class CanvasRenderer extends Renderer{
         }
       }
     }, false);
-    $(window).mouseup(function (event) {
+    window.onmouseup = function (event) {
       if (last_key) {
         release(last_key.note);
       }
       mouse_down = false;
       last_key = null;
-    });
-    /*$(piano.rootElement).mousemove(function(event) {
+    }
+    /*piano.rootElement.onmousemove = function(event) {
       if(!mouse_down) return;
       var pos = CanvasRenderer.translateMouseEvent(event);
       var hit = self.getHit(pos.x, pos.y);
@@ -653,7 +654,7 @@ class CanvasRenderer extends Renderer{
         press(hit.key.note, hit.v);
         last_key = hit.key;
       }
-    });*/
+    }*/
 
     return this;
   }
@@ -991,7 +992,7 @@ class SoundSelector{
       if (obj.url.substr(obj.url.length - 1) != "/") obj.url = obj.url + "/";
       var html = document.createElement("li");
       html.classList = "pack";
-      html.innerText = obj.name + " (" + obj.keys.length + " keys)";
+      html.textContent = obj.name + " (" + obj.keys.length + " keys)";
       html.onclick = function () {
         self.loadPack(obj.name);
         self.notification.close();
@@ -1010,10 +1011,12 @@ class SoundSelector{
     if (typeof pack == "string") {
       let useDomain = true;
       if (pack.match(/^(http|https):\/\//i)) useDomain = false;
-      $.getJSON((useDomain ? soundDomain : '') + pack + "/info.json").done(function (json) {
-        json.url = pack;
-        add(json);
-      });
+      fetch((useDomain ? soundDomain : '') + pack + "/info.json")
+        .then((res)=>res.json())
+        .then((json)=>{
+          json.url = pack;
+          add(json);
+        });
     } else add(pack); //validate packs??
   }
 
@@ -1029,11 +1032,11 @@ class SoundSelector{
       self.init();
     }, 250);
 
-    $("#sound-btn").on("click", function () {
+    document.querySelector("#sound-btn").addEventListener("click", function () {
       if (document.getElementById("Notification-Sound-Selector") != null)
         return self.notification.close();
       var html = document.createElement("ul");
-      //$(html).append("<p>Current Sound: " + self.soundSelection + "</p>");
+      //html.insertAdjacentHTML('beforeend', "<p>Current Sound: " + self.soundSelection + "</p>");
 
       for (var i = 0; self.packs.length > i; i++) {
         var pack = self.packs[i];
@@ -1185,10 +1188,9 @@ class Piano{
       if (lyric) {
 
       }
-      var jq_namediv = $(participant.nameDiv);
-      jq_namediv.addClass("play");
+      participant.nameDiv.classList.add("play");
       setTimeout(function () {
-        jq_namediv.removeClass("play");
+        participant.nameDiv.classList.remove("play");
       }, 30);
     }, delay_ms || 0);
   }
@@ -1283,7 +1285,7 @@ class Piano{
   //html/css overrides for multiplayerpiano.com
   if (window.location.hostname === 'multiplayerpiano.com') {
     //disable autocomplete
-    $('#chat-input')[0].autocomplete = 'off';
+    document.querySelector('#chat-input').autocomplete = 'off';
     //add rules button
     let aElement = document.createElement("a");
     aElement.href = "https://docs.google.com/document/d/1wQvGwQdaI8PuEjSWxKDDThVIoAlCYIxQOyfyi4o6HcM/edit?usp=sharing";
@@ -1291,7 +1293,7 @@ class Piano{
     aElement.target = "_blank";
     let buttonElement = document.createElement("button");
     buttonElement.style = "height: 24px; font-size: 12px; background: #111; border: 1px solid #444; padding: 5px; cursor: pointer; line-height: 12px; border-radius: 2px; -webkit-border-radius: 2px; -moz-border-radius: 2px; overflow: hidden; white-space: nowrap; color: #fff; position: absolute; right: 6px; top: 0px; z-index: 20001;"
-    buttonElement.innerText = "Rules"
+    buttonElement.textContent = "Rules"
     aElement.appendChild(buttonElement);
     document.body.appendChild(aElement);
   }
@@ -1327,7 +1329,7 @@ class Piano{
   }
 
   var wssport = 8443;
-  if (window.location.hostname === "localhost") {
+  if (window.location.hostname === "localhost" && false) {
     var gClient = new Client("ws://localhost:8443");
   } else {
     var gClient = new Client('wss://mppclone.com:8443');
@@ -1363,11 +1365,11 @@ class Piano{
   // Setting status
   (function () {
     gClient.on("status", function (status) {
-      $("#status").text(status);
+      document.querySelector("#status").textContent = status;
     });
     gClient.on("count", function (count) {
       if (count > 0) {
-        $("#status").html('<span class="number">' + count + '</span> ' + (count == 1 ? 'person is' : 'people are') + ' playing');
+        document.querySelector("#status").innerHTML = '<span class="number">' + count + '</span> ' + (count == 1 ? 'person is' : 'people are') + ' playing';
         if (!tabIsActive && youreMentioned) return;
         document.title = "Piano (" + count + ")";
       } else {
@@ -1380,12 +1382,12 @@ class Piano{
   (function () {
     gClient.on("hi", function (msg) {
       if (gClient.permissions.clearChat) {
-        $("#clearchat-btn").show();
+        document.querySelector("#clearchat-btn").style.display = 'block';
       }
       if (gClient.permissions.vanish) {
-        $("#vanish-btn").show();
+        document.querySelector("#vanish-btn").style.display = 'block';
       } else {
-        $("#vanish-btn").hide();
+        document.querySelector("#vanish-btn").style.display = 'none';
       }
     });
   })();
@@ -1400,17 +1402,16 @@ class Piano{
       var nameDiv;
       if (hadNameDiv) {
         nameDiv = part.nameDiv;
-        $(nameDiv).empty();
+        nameDiv.innerHTML = '';
       } else {
         nameDiv = document.createElement("div");
         nameDiv.addEventListener("mousedown", e => participantTouchhandler(e, nameDiv));
         nameDiv.addEventListener("touchstart", e => participantTouchhandler(e, nameDiv));
-        nameDiv.style.display = "none";
-        $(nameDiv).fadeIn(2000);
+        nameDiv.style.animation = 'fadeIn 2s';
         nameDiv.id = 'namediv-' + part._id;
         nameDiv.className = "name";
         nameDiv.participantId = part.id;
-        $("#names")[0].appendChild(nameDiv);
+        document.querySelector("#names").appendChild(nameDiv);
         part.nameDiv = nameDiv;
       }
       nameDiv.style.backgroundColor = part.color || "#777";
@@ -1450,13 +1451,17 @@ class Piano{
       if (hasOtherDiv) textDiv.style.float = 'left';
       part.nameDiv.appendChild(textDiv);
 
-      var arr = $("#names .name");
+      var arr = [...document.querySelectorAll("#names .name")];
       arr.sort(function (a, b) {
         if (a.id > b.id) return 1;
         else if (a.id < b.id) return -1;
         else return 0;
       });
-      $("#names").html(arr);
+      var arrHtml = '';
+      arr.forEach(elem=>{
+        arrHtml += elem.innerHTML;
+      });
+      document.querySelector("#names").innerHtml = arrHtml;
 
 
     }
@@ -1472,9 +1477,8 @@ class Piano{
       if ((gClient.participantId !== part.id || gSeeOwnCursor) && !gCursorHides.includes(part.id) && !gHideAllCursors) {
         var div = document.createElement("div");
         div.className = "cursor";
-        div.style.display = "none";
-        part.cursorDiv = $("#cursors")[0].appendChild(div);
-        $(part.cursorDiv).fadeIn(2000);
+        part.cursorDiv = document.querySelector("#cursors").appendChild(div);
+        part.cursorDiv.style.animation = 'fadeIn 2s';
 
         var div = document.createElement("div");
         div.className = "name";
@@ -1488,24 +1492,24 @@ class Piano{
     });
     gClient.on("participant removed", function (part) {
       // remove nameDiv
-      var nd = $(part.nameDiv);
-      var cd = $(part.cursorDiv);
-      cd.fadeOut(2000);
-      nd.fadeOut(2000, function () {
-        nd.remove();
-        cd.remove();
+      if(part.cursorDiv) part.cursorDiv.style.animation = 'fadeOut 2s';
+      part.nameDiv.style.animation = 'fadeOut 2s';
+      setTimeout(function(){
+        part.nameDiv.remove();
+        if(part.cursorDiv) part.cursorDiv.remove();
         part.nameDiv = undefined;
         part.cursorDiv = undefined;
-      });
+      }, 2000);
     });
     gClient.on("participant update", function (part) {
       var name = part.name || "";
       var color = part.color || "#777";
       setupParticipantDivs(part);
-      $(part.cursorDiv)
-        .find(".name")
-        .text(name)
-        .css("background-color", color);
+      var nameElem = part.cursorDiv?.getElementsByClassName('name')[0];
+      if(nameElem){
+        nameElem.textContent = name;
+        nameElem.style.backgroundColor = color;
+      }
     });
     gClient.on("ch", function (msg) {
       for (var id in gClient.ppl) {
@@ -1520,26 +1524,26 @@ class Piano{
     });
     function updateLabels(part) {
       if (part.id === gClient.participantId) {
-        $(part.nameDiv).addClass("me");
+        part.nameDiv.classList.add("me");
       } else {
-        $(part.nameDiv).removeClass("me");
+        part.nameDiv.classList.remove("me");
       }
       if (gClient.channel.crown && gClient.channel.crown.participantId === part.id) {
-        $(part.nameDiv).addClass("owner");
-        $(part.cursorDiv).addClass("owner");
+        part.nameDiv.classList.add("owner");
+        part.cursorDiv?.classList?.add("owner");
       } else {
-        $(part.nameDiv).removeClass("owner");
-        $(part.cursorDiv).removeClass("owner");
+        part.nameDiv.classList.remove("owner");
+        part.cursorDiv?.classList?.remove("owner");
       }
       if (gPianoMutes.indexOf(part._id) !== -1) {
-        $(part.nameDiv).addClass("muted-notes");
+        part.nameDiv.classList.add("muted-notes");
       } else {
-        $(part.nameDiv).removeClass("muted-notes");
+        part.nameDiv.classList.remove("muted-notes");
       }
       if (gChatMutes.indexOf(part._id) !== -1) {
-        $(part.nameDiv).addClass("muted-chat");
+        part.nameDiv.classList.add("muted-chat");
       } else {
-        $(part.nameDiv).removeClass("muted-chat");
+        part.nameDiv.classList.remove("muted-chat");
       }
     }
     function tagColor(tag) {
@@ -1569,28 +1573,40 @@ class Piano{
 
   // Handle changes to crown
   (function () {
-    var jqcrown = $('<div id="crown"></div>').appendTo(document.body).hide();
-    var jqcountdown = $('<span></span>').appendTo(jqcrown);
+    let crownElem = document.createElement('div');
+    crownElem.id = 'crown';
+    crownElem.style.display = 'none;'
+    document.body.appendChild(crownElem);
+    let countdown = document.createElement('span');
+    crownElem.appendChild(countdown);
     var countdown_interval;
-    jqcrown.click(function () {
+    crownElem.onclick = function () {
       gClient.sendArray([{ m: "chown", id: gClient.participantId }]);
-    });
+    }
     gClient.on("ch", function (msg) {
       if (msg.ch.crown) {
         var crown = msg.ch.crown;
         if (!crown.participantId || !gClient.ppl[crown.participantId]) {
           var land_time = crown.time + 2000 - gClient.serverTimeOffset;
           var avail_time = crown.time + 15000 - gClient.serverTimeOffset;
-          jqcountdown.text("");
-          jqcrown.show();
+          countdown.textContent = '';
+          crownElem.style.display = 'block';
           if (land_time - Date.now() <= 0) {
-            jqcrown.css({ "left": crown.endPos.x + "%", "top": crown.endPos.y + "%" });
+            crownElem.style.left = crown.endPos.x + "%";
+            crownElem.style.top = crown.endPos.y + "%";
           } else {
-            jqcrown.css({ "left": crown.startPos.x + "%", "top": crown.startPos.y + "%" });
-            jqcrown.addClass("spin");
-            jqcrown.animate({ "left": crown.endPos.x + "%", "top": crown.endPos.y + "%" }, 2000, "linear", function () {
-              jqcrown.removeClass("spin");
-            });
+            crownElem.style.left = crown.startPos.x + "%";
+            crownElem.style.top = crown.startPos.y + "%";
+            crownElem.classList.add("spin");
+            crownElem.style.transitionDuration = '2s';
+            setTimeout(function(){
+              crownElem.style.left = crown.endPos.x + "%";
+              crownElem.style.top = crown.endPos.y + "%";
+            }, 10);
+            setTimeout(function(){
+              crownElem.classList.remove('spin');
+              crownElem.style.transitionDuration = '';
+            }, 2000);
           }
           clearInterval(countdown_interval);
           countdown_interval = setInterval(function () {
@@ -1598,22 +1614,25 @@ class Piano{
             if (time >= land_time) {
               var ms = avail_time - time;
               if (ms > 0) {
-                jqcountdown.text(Math.ceil(ms / 1000) + "s");
+                countdown.textContent = Math.ceil(ms / 1000) + "s";
               } else {
-                jqcountdown.text("");
+                countdown.textContent = '';
                 clearInterval(countdown_interval);
               }
             }
           }, 1000);
         } else {
-          jqcrown.hide();
+          crownElem.style.display = 'none';
         }
       } else {
-        jqcrown.hide();
+        crownElem.style.display = 'none';
       }
     });
     gClient.on("disconnect", function () {
-      jqcrown.fadeOut(2000);
+      crownElem.style.animation = 'fadeOut 2s';
+      setTimeout(function(){
+        crownElem.style.animation = '';
+      }, 2000);
     });
   })();
 
@@ -1663,90 +1682,90 @@ class Piano{
       }
     }
   }, 50);
-  $(document).mousemove(function (event) {
-    mx = ((event.pageX / $(window).width()) * 100).toFixed(2);
-    my = ((event.pageY / $(window).height()) * 100).toFixed(2);
-  });
+  document.onmousemove = function (event) {
+    mx = ((event.pageX / window.innerHeight) * 100).toFixed(2);
+    my = ((event.pageY / window.innerHeight) * 100).toFixed(2);
+  };
 
 
   // Room settings button
   (function () {
     gClient.on("ch", function (msg) {
       if (gClient.isOwner() || gClient.permissions.chsetAnywhere) {
-        $("#room-settings-btn").show();
+        document.querySelector("#room-settings-btn").style.display = 'block';
       } else {
-        $("#room-settings-btn").hide();
+        document.querySelector("#room-settings-btn").style.display = 'none';
       }
       if (!gClient.channel.settings.lobby && (gClient.permissions.chownAnywhere || gClient.channel.settings.owner_id === gClient.user._id)) {
-        $("#getcrown-btn").show();
+        document.querySelector("#getcrown-btn").style.display = 'block';
       } else {
-        $("#getcrown-btn").hide();
+        document.querySelector("#getcrown-btn").style.display = 'none';
       }
     });
-    $("#room-settings-btn").click(function (evt) {
+    document.querySelector("#room-settings-btn").onclick = function (evt) {
       if (gClient.channel && (gClient.isOwner() || gClient.permissions.chsetAnywhere)) {
         var settings = gClient.channel.settings;
         openModal("#room-settings");
         setTimeout(function () {
-          $("#room-settings .checkbox[name=visible]").prop("checked", settings.visible);
-          $("#room-settings .checkbox[name=chat]").prop("checked", settings.chat);
-          $("#room-settings .checkbox[name=crownsolo]").prop("checked", settings.crownsolo);
-          $("#room-settings .checkbox[name=nocussing]").prop("checked", settings["no cussing"]);
-          $("#room-settings input[name=color]").val(settings.color);
-          $("#room-settings input[name=color2]").val(settings.color2);
-          $("#room-settings input[name=limit]").val(settings.limit);
+          document.querySelector("#room-settings .checkbox[name=visible]").checked = settings.visible;
+          document.querySelector("#room-settings .checkbox[name=chat]").checked = settings.chat;
+          document.querySelector("#room-settings .checkbox[name=crownsolo]").checked = settings.crownsolo;
+          document.querySelector("#room-settings .checkbox[name=nocussing]").checked = settings["no cussing"];
+          document.querySelector("#room-settings input[name=color]").value = settings.color;
+          document.querySelector("#room-settings input[name=color2]").value = settings.color2;
+          document.querySelector("#room-settings input[name=limit]").value = settings.limit;
         }, 100);
       }
-    });
-    $("#room-settings .submit").click(function () {
+    }
+    document.querySelector("#room-settings .submit").onclick = function () {
       var settings = {
-        visible: $("#room-settings .checkbox[name=visible]").is(":checked"),
-        chat: $("#room-settings .checkbox[name=chat]").is(":checked"),
-        crownsolo: $("#room-settings .checkbox[name=crownsolo]").is(":checked"),
-        "no cussing": $("#room-settings .checkbox[name=nocussing]").is(":checked"),
-        color: $("#room-settings input[name=color]").val(),
-        color2: $("#room-settings input[name=color2]").val(),
-        limit: $("#room-settings input[name=limit]").val(),
+        visible: document.querySelector("#room-settings .checkbox[name=visible]").checked,
+        chat: document.querySelector("#room-settings .checkbox[name=chat]").checked,
+        crownsolo: document.querySelector("#room-settings .checkbox[name=crownsolo]").checked,
+        "no cussing": document.querySelector("#room-settings .checkbox[name=nocussing]").checked,
+        color: document.querySelector("#room-settings input[name=color]").value,
+        color2: document.querySelector("#room-settings input[name=color2]").value,
+        limit: document.querySelector("#room-settings input[name=limit]").value,
       };
       gClient.setChannelSettings(settings);
       closeModal();
-    });
-    $("#room-settings .drop-crown").click(function () {
+    }
+    document.querySelector("#room-settings .drop-crown").onclick = function () {
       closeModal();
       if (confirm("This will drop the crown...!"))
         gClient.sendArray([{ m: "chown" }]);
-    });
+    }
   })();
 
   // Clear chat button
-  $("#clearchat-btn").click(function (evt) {
+  document.querySelector("#clearchat-btn").onclick = function (evt) {
     if (confirm("Are you sure you want to clear chat?")) gClient.sendArray([{ m: 'clearchat' }]);
-  });
+  };
 
   // Get crown button
-  $("#getcrown-btn").click(function (evt) {
+  document.querySelector("#getcrown-btn").onclick = function (evt) {
     gClient.sendArray([{ m: 'chown', id: MPP.client.getOwnParticipant().id }]);
-  });
+  }
 
   // Vanish or unvanish button
-  $("#vanish-btn").click(function (evt) {
+  document.querySelector("#vanish-btn").onclick = function (evt) {
     gClient.sendArray([{ m: 'v', vanish: !gClient.getOwnParticipant().vanished }]);
-  });
+  }
   gClient.on('participant update', part => {
     if (part._id === gClient.getOwnParticipant()._id) {
       if (part.vanished) {
-        $("#vanish-btn").text('Unvanish');
+        document.querySelector("#vanish-btn").textContent = 'Unvanish';
       } else {
-        $("#vanish-btn").text('Vanish');
+        document.querySelector("#vanish-btn").textContent = 'Vanish';
       }
     }
   });
   gClient.on('participant added', part => {
     if (part._id === gClient.getOwnParticipant()._id) {
       if (part.vanished) {
-        $("#vanish-btn").text('Unvanish');
+        document.querySelector("#vanish-btn").textContent = 'Unvanish';
       } else {
-        $("#vanish-btn").text('Vanish');
+        document.querySelector("#vanish-btn").textContent = 'Vanish';
       }
     }
   });
@@ -1760,9 +1779,9 @@ class Piano{
   gClient.on("ch", function (msg) {
     var chidlo = msg.ch._id.toLowerCase();
     if (chidlo === "spin" || chidlo.substr(-5) === "/spin") {
-      $("#piano").addClass("spin");
+      document.querySelector("#piano").classList.add("spin");
     } else {
-      $("#piano").removeClass("spin");
+      document.querySelector("#piano").classList.remove("spin");
     }
   });
 
@@ -1790,16 +1809,26 @@ class Piano{
       has_notice = true;
       notice += '<p>This room is set to "no cussing."</p>';
     }
-    let notice_div = $("#room-notice");
+    let notice_div = document.querySelector("#room-notice");
     if (has_notice) {
-      notice_div.html(notice);
-      if (notice_div.is(':hidden')) notice_div.fadeIn(1000);
+      notice_div.innerHTML = notice;
+      if (notice_div.style.display = 'none') {
+        notice_div.style.animation = 'fadeIn 1s';
+        notice_div.style.display = 'block';
+      }
     } else {
-      if (notice_div.is(':visible')) notice_div.fadeOut(1000);
+      if (notice_div.style.display != 'hidden') {
+        notice_div.style.animation = 'fadeOut 1s';
+        notice_div.style.display = 'none';
+      }
     }
   });
   gClient.on("disconnect", function () {
-    $("#room-notice").fadeOut(1000);
+    const roomNotice = document.querySelector('#room-notice');
+    roomNotice.style.animation = 'fadeOut 1s';
+    setTimeout(function(){
+      roomNotice.style.animation = '';
+    }, 1000);
   });
 
 
@@ -1831,16 +1860,16 @@ class Piano{
 
   // Hide piano attribute
   if (gHidePiano) {
-    $("#piano").hide();
+    document.querySelector('#piano').style.display = 'none';
   } else {
-    $("#piano").show();
+    document.querySelector('#piano').style.display = 'block';
   }
 
   // Hide chat attribute 
   if (gHideChat) {
-    $("#chat").hide();
+    document.querySelector('#chat').style.display = 'none';
   } else {
-    $("#chat").show();
+    document.querySelector('#chat').style.display = 'none';
   }
 
 
@@ -1848,9 +1877,9 @@ class Piano{
   // smooth cursor attribute
 
   if (gSmoothCursor) {
-    $("#cursors").attr('smooth-cursors', '');
+    document.querySelector("#cursors").setAttribute('smooth-cursors', '');
   } else {
-    $("#cursors").removeAttr('smooth-cursors');
+    document.querySelector("#cursors").removeAttribute('smooth-cursors');
   }
 
 
@@ -1928,12 +1957,12 @@ class Piano{
 
   var volume_slider = document.getElementById("volume-slider");
   volume_slider.value = gPiano.audio.volume;
-  $("#volume-label").text("Volume: " + Math.floor(gPiano.audio.volume * 100) + "%");
+  document.querySelector("#volume-label").textContent = "Volume: " + Math.floor(gPiano.audio.volume * 100) + "%";
   volume_slider.addEventListener("input", function (evt) {
     var v = +volume_slider.value;
     gPiano.audio.setVolume(v);
     if (window.localStorage) localStorage.volume = v;
-    $("#volume-label").text("Volume: " + Math.floor(v * 100) + "%");
+    document.querySelector("#volume-label").textContent = "Volume: " + Math.floor(v * 100) + "%";
   });
 
 
@@ -2161,7 +2190,7 @@ class Piano{
     if (!gNoPreventDefault) evt.preventDefault();
     evt.stopPropagation();
     if (evt.keyCode == 27 || evt.keyCode == 13) {
-      //$("#chat input").focus();
+      //document.querySelector("#chat input").focus();
     }
     return false;
   };
@@ -2175,22 +2204,22 @@ class Piano{
   function captureKeyboard() {
     if (!capturingKeyboard) {
       capturingKeyboard = true;
-      $("#piano").off("mousedown", recapListener);
-      $("#piano").off("touchstart", recapListener);
-      $(document).on("keydown", handleKeyDown);
-      $(document).on("keyup", handleKeyUp);
-      $(window).on("keypress", handleKeyPress);
+      document.querySelector("#piano").onmousedown = null;
+      document.querySelector("#piano").ontouchstart = null;
+      document.addEventListener('keydown', handleKeyDown);
+      document.addEventListener('keyup', handleKeyUp);
+      window.onkeypress = handleKeyPress;
     }
   };
 
   function releaseKeyboard() {
     if (capturingKeyboard) {
       capturingKeyboard = false;
-      $(document).off("keydown", handleKeyDown);
-      $(document).off("keyup", handleKeyUp);
-      $(window).off("keypress", handleKeyPress);
-      $("#piano").on("mousedown", recapListener);
-      $("#piano").on("touchstart", recapListener);
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('keyup', handleKeyUp);
+      window.onkeypress = null;
+      document.querySelector("#piano").onmousedown = recapListener;
+      document.querySelector("#piano").ontouchstart = recapListener;
     }
   };
 
@@ -2208,17 +2237,21 @@ class Piano{
   // NoteQuota
   var gNoteQuota = (function () {
     var last_rat = 0;
-    var nqjq = $("#quota .value");
+    var nq = document.querySelector("#quota .value");
     setInterval(function () {
       gNoteQuota.tick();
     }, 2000);
     return new NoteQuota(function (points) {
       // update UI
       var rat = (points / this.max) * 100;
-      if (rat <= last_rat)
-        nqjq.stop(true, true).css("width", rat.toFixed(0) + "%");
-      else
-        nqjq.stop(true, true).animate({ "width": rat.toFixed(0) + "%" }, 2000, "linear");
+      if (rat <= last_rat){
+        nq.style.animation = '';
+        nq.style.width = rat.toFixed(0) + "%";
+      }else{
+        nq.style.transitionDuration = '';
+        nq.style.transitionDuration = '2s';
+        nq.style.width = rat.toFixed(0) + "%";
+      }
       last_rat = rat;
     });
   })();
@@ -2236,7 +2269,7 @@ class Piano{
   gClient.on('participant removed', part => {
     if (gIsDming && part._id === gDmParticipant._id) {
       gIsDming = false;
-      $('#chat-input')[0].placeholder = 'You can chat with this thing.';
+      document.querySelector('#chat-input').placeholder = 'You can chat with this thing.';
     }
   });
 
@@ -2244,16 +2277,15 @@ class Piano{
   (function () {
     participantTouchhandler = function (e, ele) {
       var target = ele;
-      var target_jq = $(target);
-      if (!target_jq) return;
-      if (target_jq.hasClass("name")) {
-        target_jq.addClass("play");
+      if (!target) return;
+      if (target.classList.contains("name")) {
+        target.classList.add("play");
         var id = target.participantId;
         if (id == gClient.participantId) {
           openModal("#rename", "input[name=name]");
           setTimeout(function () {
-            $("#rename input[name=name]").val(gClient.ppl[gClient.participantId].name);
-            $("#rename input[name=color]").val(gClient.ppl[gClient.participantId].color);
+            document.querySelector("#rename input[name=name]").value = gClient.ppl[gClient.participantId].name;
+            document.querySelector("#rename input[name=color]").value = gClient.ppl[gClient.participantId].color;
           }, 100);
         } else if (id) {
           var part = gClient.ppl[id] || null;
@@ -2265,14 +2297,14 @@ class Piano{
       }
     };
     var releasehandler = function (e) {
-      $("#names .name").removeClass("play");
-    };
+      document.querySelectorAll("#names .name").forEach(elem=>elem.classList.remove("play"));
+    }
     document.body.addEventListener("mouseup", releasehandler);
     document.body.addEventListener("touchend", releasehandler);
 
     var removeParticipantMenus = function () {
-      $(".participant-menu").remove();
-      $(".participantSpotlight").hide();
+      document.querySelectorAll(".participant-menu").forEach(elem=>elem.remove());
+      document.querySelectorAll(".participantSpotlight").forEach(elem=>elem.style.display = 'none');
       document.removeEventListener("mousedown", removeParticipantMenus);
       document.removeEventListener("touchstart", removeParticipantMenus);
     };
@@ -2282,198 +2314,254 @@ class Piano{
       removeParticipantMenus();
       document.addEventListener("mousedown", removeParticipantMenus);
       document.addEventListener("touchstart", removeParticipantMenus);
-      $("#" + part.id).find(".enemySpotlight").show();
-      var menu = $('<div class="participant-menu"></div>');
-      $("body").append(menu);
+      let participant = document.getElementById(part.id);
+      if(participant) participant.getElementsByClassName(".enemySpotlight")[0].style.display = 'block';
+      var menu = document.createElement('div');
+      menu.className = 'participant-menu';
+      document.body.appendChild(menu);
       // move menu to name position
-      var jq_nd = $(part.nameDiv);
-      var pos = jq_nd.position();
-      menu.css({
-        "top": pos.top + jq_nd.height() + 15,
-        "left": pos.left + 6,
-        "background": part.color || "black"
-      });
-      menu.on("mousedown touchstart", function (evt) {
+      var pos = part.nameDiv.getBoundingClientRect();
+      menu.style.top = pos.top + pos.height + 15 + 'px';
+      menu.style.left = pos.left + 6 + 'px';
+      menu.style.background = part.color || "black";
+      console.log(menu);
+      menu.onmousedown = menu.ontouchstart = function (evt) {
         evt.stopPropagation();
-        var target = $(evt.target);
-        if (target.hasClass("menu-item")) {
-          target.addClass("clicked");
-          menu.fadeOut(200, function () {
+        var target = evt.target;
+        if (target.classList.contains('menu-item')) {
+          target.classList.add("clicked");
+          menu.style.animation = 'fadeOut 0.2s';
+          setTimeout(function(){
+            menu.style.animation = '';
             removeParticipantMenus();
-          });
+          }, 200);
         }
-      });
+      }
       // this spaces stuff out but also can be used for informational
-      $('<div class="info"></div>').appendTo(menu).text(part._id).on("mousedown touchstart", evt => {
-          navigator.clipboard.writeText(part._id);
-          evt.target.innerText = "Copied!";
-      });
+      let info = document.createElement('div');
+      info.className = 'info';
+      menu.appendChild(info);
+      info.textContent = part._id;
+      info.onmousedown = menu.ontouchstart = (evt) => {
+        navigator.clipboard.writeText(part._id);
+        evt.target.textContent = "Copied!";
+      }
       // add menu items
       if (gPianoMutes.indexOf(part._id) == -1) {
-        $('<div class="menu-item">Mute Notes</div>').appendTo(menu)
-          .on("mousedown touchstart", function (evt) {
-            gPianoMutes.push(part._id);
-            if (localStorage) localStorage.pianoMutes = gPianoMutes.join(',');
-            $(part.nameDiv).addClass("muted-notes");
-          });
+        let menuItem = document.createElement('div');
+        menuItem.className = 'menu-item';
+        menuItem.textContent = 'Mute Notes';
+        menu.appendChild(menuItem);
+        menuItem.onmousedown = menuItem.ontouchstart = function (evt) {
+          gPianoMutes.push(part._id);
+          if (localStorage) localStorage.pianoMutes = gPianoMutes.join(',');
+          part.nameDiv.classList.add("muted-notes");
+        }
       } else {
-        $('<div class="menu-item">Unmute Notes</div>').appendTo(menu)
-          .on("mousedown touchstart", function (evt) {
-            var i;
-            while ((i = gPianoMutes.indexOf(part._id)) != -1)
-              gPianoMutes.splice(i, 1);
-            if (localStorage) localStorage.pianoMutes = gPianoMutes.join(',');
-            $(part.nameDiv).removeClass("muted-notes");
-          });
+        let menuItem = document.createElement('div');
+        menuItem.className = 'menu-item';
+        menuItem.textContent = 'Unmute Notes';
+        menu.appendChild(menuItem);
+        menuItem.onmousedown = menuItem.ontouchstart = function (evt) {
+          var i;
+          while ((i = gPianoMutes.indexOf(part._id)) != -1)
+            gPianoMutes.splice(i, 1);
+          if (localStorage) localStorage.pianoMutes = gPianoMutes.join(',');
+          part.nameDiv.classList.remove("muted-notes");
+        }
       }
       if (gChatMutes.indexOf(part._id) == -1) {
-        $('<div class="menu-item">Mute Chat</div>').appendTo(menu)
-          .on("mousedown touchstart", function (evt) {
-            gChatMutes.push(part._id);
-            if (localStorage) localStorage.chatMutes = gChatMutes.join(',');
-            $(part.nameDiv).addClass("muted-chat");
-          });
+        let menuItem = document.createElement('div');
+        menuItem.className = 'menu-item';
+        menuItem.textContent = 'Mute Chat';
+        menu.appendChild(menuItem);
+        menuItem.onmousedown = menuItem.ontouchstart = function (evt) {
+          gChatMutes.push(part._id);
+          if (localStorage) localStorage.chatMutes = gChatMutes.join(',');
+          part.nameDiv.classList.add("muted-chat");
+        }
       } else {
-        $('<div class="menu-item">Unmute Chat</div>').appendTo(menu)
-          .on("mousedown touchstart", function (evt) {
-            var i;
-            while ((i = gChatMutes.indexOf(part._id)) != -1)
-              gChatMutes.splice(i, 1);
-            if (localStorage) localStorage.chatMutes = gChatMutes.join(',');
-            $(part.nameDiv).removeClass("muted-chat");
-          });
+        let menuItem = document.createElement('div');
+        menuItem.className = 'menu-item';
+        menuItem.textContent = 'Unmute Chat';
+        menu.appendChild(menuItem);
+        menuItem.onmousedown = menuItem.ontouchstart = function (evt) {
+          var i;
+          while ((i = gChatMutes.indexOf(part._id)) != -1)
+            gChatMutes.splice(i, 1);
+          if (localStorage) localStorage.chatMutes = gChatMutes.join(',');
+          part.nameDiv.classList.remove("muted-chat");
+        }
       }
       if (!(gPianoMutes.indexOf(part._id) >= 0) || !(gChatMutes.indexOf(part._id) >= 0)) {
-        $('<div class="menu-item">Mute Completely</div>').appendTo(menu)
-          .on("mousedown touchstart", function (evt) {
-            gPianoMutes.push(part._id);
-            if (localStorage) localStorage.pianoMutes = gPianoMutes.join(',');
-            gChatMutes.push(part._id);
-            if (localStorage) localStorage.chatMutes = gChatMutes.join(',');
-            $(part.nameDiv).addClass("muted-notes");
-            $(part.nameDiv).addClass("muted-chat");
-          });
+        let menuItem = document.createElement('div');
+        menuItem.className = 'menu-item';
+        menuItem.textContent = 'Mute Completely';
+        menu.appendChild(menuItem);
+        menuItem.onmousedown = menuItem.ontouchstart = function (evt) {
+          gPianoMutes.push(part._id);
+          if (localStorage) localStorage.pianoMutes = gPianoMutes.join(',');
+          gChatMutes.push(part._id);
+          if (localStorage) localStorage.chatMutes = gChatMutes.join(',');
+          part.nameDiv.classList.add("muted-notes");
+          part.nameDiv.classList.add("muted-chat");
+        }
       }
       if ((gPianoMutes.indexOf(part._id) >= 0) || (gChatMutes.indexOf(part._id) >= 0)) {
-        $('<div class="menu-item">Unmute Completely</div>').appendTo(menu)
-          .on("mousedown touchstart", function (evt) {
-            var i;
-            while ((i = gPianoMutes.indexOf(part._id)) != -1)
-              gPianoMutes.splice(i, 1);
-            while ((i = gChatMutes.indexOf(part._id)) != -1)
-              gChatMutes.splice(i, 1);
-            if (localStorage) localStorage.pianoMutes = gPianoMutes.join(',');
-            if (localStorage) localStorage.chatMutes = gChatMutes.join(',');
-            $(part.nameDiv).removeClass("muted-notes");
-            $(part.nameDiv).removeClass("muted-chat");
-          });
+        let menuItem = document.createElement('div');
+        menuItem.className = 'menu-item';
+        menuItem.textContent = 'Unmute Completely';
+        menu.appendChild(menuItem);
+        menuItem.onmousedown = menuItem.ontouchstart = function (evt) {
+          var i;
+          while ((i = gPianoMutes.indexOf(part._id)) != -1)
+            gPianoMutes.splice(i, 1);
+          while ((i = gChatMutes.indexOf(part._id)) != -1)
+            gChatMutes.splice(i, 1);
+          if (localStorage) localStorage.pianoMutes = gPianoMutes.join(',');
+          if (localStorage) localStorage.chatMutes = gChatMutes.join(',');
+          part.nameDiv.classList.remove("muted-notes");
+          part.nameDiv.classList.remove("muted-chat");
+        }
       }
       if (gIsDming && gDmParticipant._id === part._id) {
-        $('<div class="menu-item">End Direct Message</div>').appendTo(menu)
-          .on("mousedown touchstart", function (evt) {
-            gIsDming = false;
-            $('#chat-input')[0].placeholder = 'You can chat with this thing.';
-          });
+        let menuItem = document.createElement('div');
+        menuItem.className = 'menu-item';
+        menuItem.textContent = 'End Direct Message';
+        menu.appendChild(menuItem);
+        menuItem.onmousedown = menuItem.ontouchstart = function (evt) {
+          gIsDming = false;
+          document.querySelector('#chat-input').placeholder = 'You can chat with this thing.';
+        }
       } else {
-        $('<div class="menu-item">Direct Message</div>').appendTo(menu)
-          .on("mousedown touchstart", function (evt) {
-            if (!gKnowsHowToDm) {
-              localStorage.knowsHowToDm = true;
-              gKnowsHowToDm = true;
-              new Notification({
-                target: '#piano',
-                duration: 20000,
-                title: 'How to DM',
-                text: 'After you click the button to direct message someone, future chat messages will be sent to them instead of to everyone. To go back to talking in public chat, send a blank chat message, or click the button again.',
-              });
-            }
-            gIsDming = true;
-            gDmParticipant = part;
-            $('#chat-input')[0].placeholder = 'Direct messaging ' + part.name + '.';
-          });
+        let menuItem = document.createElement('div');
+        menuItem.className = 'menu-item';
+        menuItem.textContent = 'Direct Message';
+        menu.appendChild(menuItem);
+        menuItem.onmousedown = menuItem.ontouchstart = function (evt) {
+          if (!gKnowsHowToDm) {
+            localStorage.knowsHowToDm = true;
+            gKnowsHowToDm = true;
+            new Notification({
+              target: '#piano',
+              duration: 20000,
+              title: 'How to DM',
+              text: 'After you click the button to direct message someone, future chat messages will be sent to them instead of to everyone. To go back to talking in public chat, send a blank chat message, or click the button again.',
+            });
+          }
+          gIsDming = true;
+          gDmParticipant = part;
+          document.querySelector('#chat-input').placeholder = 'Direct messaging ' + part.name + '.';
+        }
       }
       if (gCursorHides.indexOf(part._id) == -1) {
-          $('<div class="menu-item">Hide Cursor</div>').appendTo(menu)
-            .on("mousedown touchstart", function (evt) {
-              gCursorHides.push(part._id);
-              if (localStorage) localStorage.cursorHides = gCursorHides.join(',');
-              $(part.cursorDiv).hide();
-            });
-        } else {
-          $('<div class="menu-item">Show Cursor</div>').appendTo(menu)
-            .on("mousedown touchstart", function (evt) {
-              var i;
-              while ((i = gCursorHides.indexOf(part._id)) != -1)
-              gCursorHides.splice(i, 1);
-              if (localStorage) localStorage.cursorHides = gCursorHides.join(',');
-              $(part.cursorDiv).show();
-            });
+        let menuItem = document.createElement('div');
+        menuItem.className = 'menu-item';
+        menuItem.textContent = 'Hide Cursor';
+        menu.appendChild(menuItem);
+        menuItem.onmousedown = menuItem.ontouchstart = function (evt) {
+          gCursorHides.push(part._id);
+          if (localStorage) localStorage.cursorHides = gCursorHides.join(',');
+          part.cursorDiv.style.display = 'none';
         }
+      } else {
+        let menuItem = document.createElement('div');
+        menuItem.className = 'menu-item';
+        menuItem.textContent = 'Show Cursor';
+        menu.appendChild(menuItem);
+        menuItem.onmousedown = menuItem.ontouchstart = function (evt) {
+          var i;
+          while ((i = gCursorHides.indexOf(part._id)) != -1)
+          gCursorHides.splice(i, 1);
+          if (localStorage) localStorage.cursorHides = gCursorHides.join(',');
+          part.cursorDiv.style.display = 'block';
+        }
+      }
 
-      $('<div class="menu-item">Mention</div>').appendTo(menu)
-        .on("mousedown touchstart", function (evt) {
-          $('#chat-input')[0].value += '@' + part.id + ' ';
-          setTimeout(() => {
-            $('#chat-input').focus();
-          }, 1);
-        });
+      let menuItem = document.createElement('div');
+      menuItem.className = 'menu-item';
+      menuItem.textContent = 'Mention';
+      menu.appendChild(menuItem);
+      menuItem.onmousedown = menuItem.ontouchstart = function (evt) {
+        document.querySelector('#chat-input').value += '@' + part.id + ' ';
+        setTimeout(() => {
+          document.querySelector('#chat-input').focus();
+        }, 1);
+      }
 
       if (gClient.isOwner() || gClient.permissions.chownAnywhere) {
         if (!gClient.channel.settings.lobby) {
-          $('<div class="menu-item give-crown">Give Crown</div>').appendTo(menu)
-            .on("mousedown touchstart", function (evt) {
-              if (confirm("Give room ownership to " + part.name + "?"))
-                gClient.sendArray([{ m: "chown", id: part.id }]);
-            });
+          let menuItem = document.createElement('div');
+          menuItem.className = 'menu-item give-crown';
+          menuItem.textContent = 'Give Crown';
+          menu.appendChild(menuItem);
+          menuItem.onmousedown = menuItem.ontouchstart = function (evt) {
+            if (confirm("Give room ownership to " + part.name + "?"))
+              gClient.sendArray([{ m: "chown", id: part.id }]);
+          }
         }
-        $('<div class="menu-item kickban">Kickban</div>').appendTo(menu)
-          .on("mousedown touchstart", function (evt) {
-            var minutes = prompt("How many minutes? (0-300)", "30");
-            if (minutes === null) return;
-            minutes = parseFloat(minutes) || 0;
-            var ms = minutes * 60 * 1000;
-            gClient.sendArray([{ m: "kickban", _id: part._id, ms: ms }]);
-          });
+        let menuItem = document.createElement('div');
+        menuItem.className = 'menu-item kickban';
+        menuItem.textContent = 'Kickban';
+        menu.appendChild(menuItem);
+        menuItem.onmousedown = menuItem.ontouchstart = function (evt) {
+          var minutes = prompt("How many minutes? (0-300)", "30");
+          if (minutes === null) return;
+          minutes = parseFloat(minutes) || 0;
+          var ms = minutes * 60 * 1000;
+          gClient.sendArray([{ m: "kickban", _id: part._id, ms: ms }]);
+        }
       }
       if (gClient.permissions.siteBan) {
-        $('<div class="menu-item site-ban">Site Ban</div>').appendTo(menu)
-          .on("mousedown touchstart", function (evt) {
-            openModal("#siteban");
-            setTimeout(function () {
-              $("#siteban input[name=id]").val(part._id);
-              $("#siteban input[name=reasonText]").val("Discrimination against others");
-              $("#siteban input[name=reasonText]").attr("disabled", true);
-              $("#siteban select[name=reasonSelect]").val("Discrimination against others");
-              $("#siteban input[name=durationNumber]").val(5);
-              $("#siteban input[name=durationNumber]").attr("disabled", false);
-              $("#siteban select[name=durationUnit]").val("hours");
-              $("#siteban textarea[name=note]").val("");
-              $("#siteban p[name=errorText]").text("")
-              if (gClient.permissions.siteBanAnyReason) {
-                $("#siteban select[name=reasonSelect] option[value=custom]").attr("disabled", false);
-              } else {
-                $("#siteban select[name=reasonSelect] option[value=custom]").attr("disabled", true);
-              }
-            }, 100);
-          });
+        let menuItem = document.createElement('div');
+        menuItem.className = 'menu-item site-ban';
+        menuItem.textContent = 'Site Ban';
+        menu.appendChild(menuItem);
+        menuItem.onmousedown = menuItem.ontouchstart = function (evt) {
+          openModal("#siteban");
+          setTimeout(function () {
+            document.querySelector("#siteban input[name=id]").value = part._id;
+            let reason = document.querySelector("#siteban input[name=reasonText]")
+            reason.value = "Discrimination against others";
+            reason.disabled = true;
+            document.querySelector("#siteban select[name=reasonSelect]").valie = "Discrimination against others";
+            document.querySelector("#siteban input[name=durationNumber]").value = 5;
+            document.querySelector("#siteban input[name=durationNumber]").disabled = false;
+            document.querySelector("#siteban select[name=durationUnit]").value = "hours";
+            document.querySelector("#siteban textarea[name=note]").value = '';
+            document.querySelector("#siteban p[name=errorText]").textContent = '';
+            if (gClient.permissions.siteBanAnyReason) {
+              document.querySelector("#siteban select[name=reasonSelect] option[value=custom]").disabled = false;
+            } else {
+              document.querySelector("#siteban select[name=reasonSelect] option[value=custom]").disabled = true;
+            }
+          }, 100);
+        }
       }
       if (gClient.permissions.usersetOthers) {
-        $('<div class="menu-item set-color">Set Color</div>').appendTo(menu)
-          .on("mousedown touchstart", function (evt) {
-            var color = prompt("What color?", part.color);
-            if (color === null) return;
-            gClient.sendArray([{ m: "setcolor", _id: part._id, color: color }]);
-          });
+        let menuItem = document.createElement('div');
+        menuItem.className = 'menu-item set-color';
+        menuItem.textContent = 'Set Color';
+        menu.appendChild(menuItem);
+        menuItem.onmousedown = menuItem.ontouchstart = function (evt) {
+          var color = prompt("What color?", part.color);
+          if (color === null) return;
+          gClient.sendArray([{ m: "setcolor", _id: part._id, color: color }]);
+        }
       }
       if (gClient.permissions.usersetOthers) {
-        $('<div class="menu-item set-name">Set Name</div>').appendTo(menu)
-          .on("mousedown touchstart", function (evt) {
-            var name = prompt("What name?", part.name);
-            if (name === null) return;
-            gClient.sendArray([{ m: "setname", _id: part._id, name: name }]);
-          });
+        let menuItem = document.createElement('div');
+        menuItem.className = 'menu-item set-name';
+        menuItem.textContent = 'Set Name';
+        menu.appendChild(menuItem);
+        menuItem.onmousedown = menuItem.ontouchstart = function (evt) {
+          var name = prompt("What name?", part.name);
+          if (name === null) return;
+          gClient.sendArray([{ m: "setname", _id: part._id, name: name }]);
+        }
       }
-      menu.fadeIn(100);
+      menu.style.animation = 'fadeIn 0.1s';
+      menu.style.display = 'block';
     };
   })();
 
@@ -2507,28 +2595,42 @@ class Notification extends EventEmitter{
     this.title = par.title || "";
     this.text = par.text || "";
     this.html = par.html || "";
-    this.target = $(par.target || "#piano");
+    this.target = document.querySelector(par.target || "#piano");
     this.duration = par.duration || 30000;
     this["class"] = par["class"] || "classic";
 
     var self = this;
-    var eles = $("#" + this.id);
-    if (eles.length > 0) {
+    var eles = document.getElementById(this.id);
+    if (eles > 0) {
       eles.remove();
     }
-    this.domElement = $('<div class="notification"><div class="notification-body"><div class="title"></div>' +
-      '<div class="text"></div></div><div class="x">X</div></div>');
-    this.domElement[0].id = this.id;
-    this.domElement.addClass(this["class"]);
-    this.domElement.find(".title").text(this.title);
+    this.domElement = document.createElement('div');
+    this.domElement.id = this.id;
+    this.domElement.classList.add(this.class);
+    this.domElement.className = 'notification';
+    const notifBody = document.createElement('div');
+    notifBody.className = 'notification-body';
+    this.domElement.appendChild(notifBody);
+    const notifTitle = document.createElement('div');
+    notifTitle.className = 'title';
+    notifTitle.textContent = this.title;
+    notifBody.appendChild(notifTitle);
+    const notifText = document.createElement('div');
+    notifText.className = 'text';
     if (this.text.length > 0) {
-      this.domElement.find(".text").text(this.text);
+      notifText.textContent = this.text;
     } else if (this.html instanceof HTMLElement) {
-      this.domElement.find(".text")[0].appendChild(this.html);
+      notifText.appendChild(this.html);
     } else if (this.html.length > 0) {
-      this.domElement.find(".text").html(this.html);
+      notifText.innerHTML = this.html;
     }
-    document.body.appendChild(this.domElement.get(0));
+    notifBody.appendChild(notifText);
+    const notifX = document.createElement('div');
+    notifX.className = 'x';
+    notifX.textContent = 'X';
+    this.domElement.appendChild(notifX);
+    
+    document.body.appendChild(this.domElement);
 
     this.position();
     this.onresize = function () {
@@ -2536,9 +2638,9 @@ class Notification extends EventEmitter{
     };
     window.addEventListener("resize", this.onresize);
 
-    this.domElement.find(".x").click(function () {
+    notifX.onclick = function () {
       self.close();
-    });
+    }
 
     if (this.duration > 0) {
       setTimeout(function () {
@@ -2550,24 +2652,29 @@ class Notification extends EventEmitter{
   }
 
   position() {
-    var pos = this.target.offset();
-    var x = pos.left - (this.domElement.width() / 2) + (this.target.width() / 4);
-    var y = pos.top - this.domElement.height() - 8;
-    var width = this.domElement.width();
-    if (x + width > $("body").width()) {
-      x -= ((x + width) - $("body").width());
+    const pos = this.target.getBoundingClientRect();
+    const domElementPos = this.domElement.getBoundingClientRect();
+    var x = pos.left - (domElementPos.width / 2) + (this.target.getBoundingClientRect().width / 4);
+    var y = pos.top - domElementPos.height - 8;
+    var width = domElementPos.width;
+    const bodyPos = document.body.getBoundingClientRect();
+    if (x + width > bodyPos.width) {
+      x -= ((x + width) - bodyPos.width);
     }
     if (x < 0) x = 0;
-    this.domElement.offset({ left: x, top: y });
+    this.domElement.style.left = x;
+    this.domElement.style.top = y;
   }
 
   close() {
     var self = this;
     window.removeEventListener("resize", this.onresize);
-    this.domElement.fadeOut(500, function () {
+    
+    this.domElement.style.animation = 'fadeOut 0.4s';
+    setTimeout(function(){
       self.domElement.remove();
       self.emit("close");
-    });
+    }, 400);
   }
 }
 
@@ -2605,7 +2712,7 @@ class Notification extends EventEmitter{
     if (localStorage.volume) {
       volume_slider.value = localStorage.volume;
       gPiano.audio.setVolume(localStorage.volume);
-      $("#volume-label").text("Volume: " + Math.floor(gPiano.audio.volume * 100) + "%");
+      document.querySelector("#volume-label").textContent = "Volume: " + Math.floor(gPiano.audio.volume * 100) + "%";
     }
     else localStorage.volume = gPiano.audio.volume;
 
@@ -2621,7 +2728,7 @@ class Notification extends EventEmitter{
 
   // warn user about loud noises before starting sound (no autoplay)
   openModal("#sound-warning");
-  $(document).off("keydown", modalHandleEsc);
+  document.removeEventListener('keydown', modalHandleEsc);
   var user_interact = function (evt) {
     if ((evt.path || (evt.composedPath && evt.composedPath())).includes(document.getElementById('sound-warning')) || evt.target === document.getElementById('sound-warning')) {
       closeModal();
@@ -2647,109 +2754,122 @@ class Notification extends EventEmitter{
 
   ////////////////////////////////////////////////////////////////
 
-  $("#room > .info").text("--");
+  document.querySelector("#room > .info").textContent = "--";
   gClient.on("ch", function (msg) {
     var channel = msg.ch;
-    var info = $("#room > .info");
-    info.text(channel._id);
-    if (channel.settings.lobby) info.addClass("lobby");
-    else info.removeClass("lobby");
-    if (!channel.settings.chat) info.addClass("no-chat");
-    else info.removeClass("no-chat");
-    if (channel.settings.crownsolo) info.addClass("crownsolo");
-    else info.removeClass("crownsolo");
-    if (channel.settings['no cussing']) info.addClass("no-cussing");
-    else info.removeClass("no-cussing");
-    if (!channel.settings.visible) info.addClass("not-visible");
-    else info.removeClass("not-visible");
+    var info = document.querySelector("#room > .info");
+    info.textContent = channel._id;
+    if (channel.settings.lobby) info.classList.add("lobby");
+    else info.classList.remove("lobby");
+    if (!channel.settings.chat) info.classList.add("no-chat");
+    else info.classList.remove("no-chat");
+    if (channel.settings.crownsolo) info.classList.add("crownsolo");
+    else info.classList.remove("crownsolo");
+    if (channel.settings['no cussing']) info.classList.add("no-cussing");
+    else info.classList.remove("no-cussing");
+    if (!channel.settings.visible) info.classList.add("not-visible");
+    else info.classList.remove("not-visible");
   });
   gClient.on("ls", function (ls) {
     for (var i in ls.u) {
       if (!ls.u.hasOwnProperty(i)) continue;
       var room = ls.u[i];
-      var info = $("#room .info[roomid=\"" + (room.id + '').replace(/[\\"']/g, '\\$&').replace(/\u0000/g, '\\0') + "\"]");
-      if (info.length == 0) {
-        info = $("<div class=\"info\"></div>");
-        info.attr("roomname", room._id);
-        info.attr("roomid", room.id);
-        $("#room .more").append(info);
+      var info = document.querySelector("#room .info[roomid=\"" + (room.id + '').replace(/[\\"']/g, '\\$&').replace(/\u0000/g, '\\0') + "\"]");
+      if (!info) {
+        info = document.createElement('div');
+        info.className = ('info');
+        info.setAttribute('roomname', room._id);
+        info.setAttribute('roomid', room.id)
+        document.querySelector("#room .more").appendChild(info);
       }
-      info.text(room.count + '/' + ('limit' in room.settings ? room.settings.limit : 20) + " " + room._id);
-      if (room.settings.lobby) info.addClass("lobby");
-      else info.removeClass("lobby");
-      if (!room.settings.chat) info.addClass("no-chat");
-      else info.removeClass("no-chat");
-      if (room.settings.crownsolo) info.addClass("crownsolo");
-      else info.removeClass("crownsolo");
-      if (room.settings['no cussing']) info.addClass("no-cussing");
-      else info.removeClass("no-cussing");
-      if (!room.settings.visible) info.addClass("not-visible");
-      else info.removeClass("not-visible");
-      if (room.banned) info.addClass("banned");
-      else info.removeClass("banned");
+      info.textContent = room.count + '/' + ('limit' in room.settings ? room.settings.limit : 20) + " " + room._id;
+      if (room.settings.lobby) info.classList.add("lobby");
+      else info.classList.remove("lobby");
+      if (!room.settings.chat) info.classList.add("no-chat");
+      else info.classList.remove("no-chat");
+      if (room.settings.crownsolo) info.classList.add("crownsolo");
+      else info.classList.remove("crownsolo");
+      if (room.settings['no cussing']) info.classList.add("no-cussing");
+      else info.classList.remove("no-cussing");
+      if (!room.settings.visible) info.classList.add("not-visible");
+      else info.classList.remove("not-visible");
+      if (room.banned) info.classList.add("banned");
+      else info.classList.remove("banned");
     }
   });
-  $("#room").on("click", function (evt) {
+  document.querySelector("#room").onclick = function (evt) {
     evt.stopPropagation();
 
     // clicks on a new room
-    if ($(evt.target).hasClass("info") && $(evt.target).parents(".more").length) {
-      $("#room .more").fadeOut(250);
-      var selected_name = $(evt.target).attr("roomname");
+    if (evt.target.classList.contains("info") && evt.target.parentElement.className == 'more') {
+      let moreBtn = document.querySelector('#room .more');
+      moreBtn.style.animation = 'fadeOut 0.25s';
+      setTimeout(function(){
+        moreBtn.style.animation = '';
+        moreBtn.style.display = 'none';
+      }, 250);
+
+      var selected_name = evt.target.getAttribute("roomname");
       if (typeof selected_name != "undefined") {
         changeRoom(selected_name, "right");
       }
       return false;
     }
     // clicks on "New Room..."
-    else if ($(evt.target).hasClass("new")) {
+    else if (evt.target.classList.contains("new")) {
       openModal("#new-room", "input[name=name]");
     }
     // all other clicks
     var doc_click = function (evt) {
-      if ($(evt.target).is("#room .more")) return;
-      $(document).off("mousedown", doc_click);
-      $("#room .more").fadeOut(250);
+      if (evt.target.id == 'room' && evt.target.className == 'more') return;
+      document.onmousedown = null;
+      let moreBtn = document.querySelector('#room .more');
+      moreBtn.style.animation = 'fadeOut 0.25s';
+      setTimeout(function(){
+        moreBtn.style.animation = '';
+        moreBtn.style.display = 'none';
+      }, 250);
       gClient.sendArray([{ m: "-ls" }]);
     }
-    $(document).on("mousedown", doc_click);
-    $("#room .more .info").remove();
-    $("#room .more").show();
+    document.onmousedown = doc_click;
+    document.querySelector("#room .more .info")?.remove();
+    console.log('came here');
+    document.querySelector("#room .more").style.display = 'block';
     gClient.sendArray([{ m: "+ls" }]);
-  });
-  $("#new-room-btn").on("click", function (evt) {
+  }
+  document.querySelector("#new-room-btn").onclick = function (evt) {
     evt.stopPropagation();
     openModal("#new-room", "input[name=name]");
-  });
+  }
 
 
-  $("#play-alone-btn").on("click", function (evt) {
+  document.querySelector("#play-alone-btn").onclick = function (evt) {
     evt.stopPropagation();
     var room_name = "Room" + Math.floor(Math.random() * 1000000000000);
     changeRoom(room_name, "right", { "visible": false });
     setTimeout(function () {
       new Notification({ id: "share", title: "Playing alone", html: 'You are playing alone in a room by yourself, but you can always invite friends by sending them the link.<br><a href="' + location.href + '">' + location.href + '</a>', duration: 25000 });
     }, 1000);
-  });
+  }
 
 
 
 
 
   //Account button
-  $("#account-btn").on("click", function (evt) {
+  document.querySelector("#account-btn").onclick = function (evt) {
     evt.stopPropagation();
     openModal("#account");
     if (gClient.accountInfo) {
-      $("#account #account-info").show()
+      document.querySelector("#account #account-info").style.display = 'block';
       if (gClient.accountInfo.type === "discord") {
-        $("#account #avatar-image").prop("src", gClient.accountInfo.avatar)
-        $("#account #logged-in-user-text").text(gClient.accountInfo.username + "#" + gClient.accountInfo.discriminator)
+        document.querySelector("#account #avatar-image").src = gClient.accountInfo.avatar;
+        document.querySelector("#account #logged-in-user-text").textContent = gClient.accountInfo.username + "#" + gClient.accountInfo.discriminator;
       }
     } else {
-      $("#account #account-info").hide()
+      document.querySelector("#account #account-info").style.display = 'none';
     }
-  });
+  }
 
 
 
@@ -2768,48 +2888,56 @@ class Notification extends EventEmitter{
   function openModal(selector, focus) {
     if (chat) chat.blur();
     releaseKeyboard();
-    $(document).on("keydown", modalHandleEsc);
-    $("#modal #modals > *").hide();
-    $("#modal").fadeIn(250);
-    $(selector).show();
+    document.addEventListener('keydown', modalHandleEsc);
+    document.querySelectorAll("#modal #modals > *").forEach(win=>win.style.display = 'none');
+    const modalWin = document.querySelector("#modal");
+    modalWin.style.animation = 'fadeIn 0.25s';
+    modalWin.style.display = 'block';
+    let selected = document.querySelector(selector);
+    selected.style.display = 'block';
     setTimeout(function () {
-      $(selector).find(focus).focus();
+      selected.querySelector(focus)?.focus();
     }, 100);
     gModal = selector;
   };
 
   function closeModal() {
-    $(document).off("keydown", modalHandleEsc);
-    $("#modal").fadeOut(100);
-    $("#modal #modals > *").hide();
+    document.removeEventListener('keydown', modalHandleEsc);
+    const modalWin = document.querySelector("#modal");
+    modalWin.style.animation = 'fadeOut 0.1s';
+    setTimeout(function(){
+      modalWin.style.animation = '';
+      modalWin.style.display = 'none';
+    }, 100);
+    document.querySelector("#modal #modals > *").style.display = 'none';
     captureKeyboard();
     gModal = null;
   };
 
-  var modal_bg = $("#modal .bg")[0];
-  $(modal_bg).on("click", function (evt) {
+  var modal_bg = document.querySelector("#modal .bg");
+  modal_bg.onclick = function (evt) {
     if (evt.target != modal_bg) return;
     closeModal();
-  });
+  };
 
   (function () {
     function submit() {
-      var name = $("#new-room .text[name=name]").val();
+      var name = document.querySelector("#new-room .text[name=name]").value;
       var settings = {
-        visible: $("#new-room .checkbox[name=visible]").is(":checked"),
+        visible: document.querySelector("#new-room .checkbox[name=visible]").checked,
         chat: true
       };
-      $("#new-room .text[name=name]").val("");
+      document.querySelector("#new-room .text[name=name]").value = '';
       closeModal();
       changeRoom(name, "right", settings);
       setTimeout(function () {
         new Notification({ id: "share", title: "Created a Room", html: 'You can invite friends to your room by sending them the link.<br><a href="' + location.href + '">' + location.href + '</a>', duration: 25000 });
       }, 1000);
     };
-    $("#new-room .submit").click(function (evt) {
+    document.querySelector("#new-room .submit").onclick = function (evt) {
       submit();
-    });
-    $("#new-room .text[name=name]").keypress(function (evt) {
+    }
+    document.querySelector("#new-room .text[name=name]").onkeypress = function (evt) {
       if (evt.keyCode == 13) {
         submit();
       } else if (evt.keyCode == 27) {
@@ -2820,7 +2948,7 @@ class Notification extends EventEmitter{
       if (!gNoPreventDefault) evt.preventDefault();
       evt.stopPropagation();
       return false;
-    });
+    }
   })();
 
 
@@ -2851,20 +2979,25 @@ class Notification extends EventEmitter{
     gClient.setChannel(name, settings);
 
     var t = 0, d = 100;
-    $("#piano").addClass("ease-out").addClass("slide-" + opposite);
+    const pianoElem = document.querySelector("#piano");
+    pianoElem.classList.add("ease-out");
+    pianoElem.classList.add("slide-" + opposite);
     setTimeout(function () {
-      $("#piano").removeClass("ease-out").removeClass("slide-" + opposite).addClass("slide-" + direction);
+      pianoElem.classList.remove("ease-out")
+      pianoElem.classList.remove("slide-" + opposite);
+      pianoElem.classList.add("slide-" + direction);
     }, t += d);
     setTimeout(function () {
-      $("#piano").addClass("ease-in").removeClass("slide-" + direction);
+      pianoElem.classList.add("ease-in");
+      pianoElem.classList.remove("slide-" + direction);
     }, t += d);
     setTimeout(function () {
-      $("#piano").removeClass("ease-in");
+      pianoElem.classList.remove("ease-in");
     }, t += d);
   };
 
   var gHistoryDepth = 0;
-  $(window).on("popstate", function (evt) {
+  window.onpopstate = function (evt) {
     var depth = evt.state ? evt.state.depth : 0;
     //if (depth == gHistoryDepth) return; // <-- forgot why I did that though...
     //yeah brandon idk why you did that either, but it's stopping the back button from changing rooms after 1 click so I commented it out
@@ -2874,7 +3007,7 @@ class Notification extends EventEmitter{
 
     var name = getRoomNameFromURL();
     changeRoom(name, direction, null, false);
-  });
+  };
 
 
 
@@ -2902,17 +3035,17 @@ class Notification extends EventEmitter{
   (function () {
     function submit() {
       var set = {
-        name: $("#rename input[name=name]").val(),
-        color: $("#rename input[name=color]").val()
+        name: document.querySelector("#rename input[name=name]").value,
+        color: document.querySelector("#rename input[name=color]").value
       };
-      //$("#rename .text[name=name]").val("");
+      //document.querySelector("#rename .text[name=name]").value = '';
       closeModal();
       gClient.sendArray([{ m: "userset", set: set }]);
     };
-    $("#rename .submit").click(function (evt) {
+    document.querySelector("#rename .submit").onclick = function (evt) {
       submit();
-    });
-    $("#rename .text[name=name]").keypress(function (evt) {
+    }
+    document.querySelector("#rename .text[name=name]").onkeypress = function (evt) {
       if (evt.keyCode == 13) {
         submit();
       } else if (evt.keyCode == 27) {
@@ -2923,7 +3056,7 @@ class Notification extends EventEmitter{
       if (!gNoPreventDefault) evt.preventDefault();
       evt.stopPropagation();
       return false;
-    });
+    }
   })();
 
 
@@ -2939,12 +3072,12 @@ class Notification extends EventEmitter{
     function submit() {
       var msg = { m: "siteban" };
 
-      msg.id = $("#siteban .text[name=id]").val();
+      msg.id = document.querySelector("#siteban .text[name=id]").value;
 
-      var durationUnit = $("#siteban select[name=durationUnit]").val();
+      var durationUnit = document.querySelector("#siteban select[name=durationUnit]").value;
       if (durationUnit === "permanent") {
         if (!gClient.permissions.siteBanAnyDuration) {
-          $("#siteban p[name=errorText]").text("You don't have permission to ban longer than 1 month. Contact a higher staff to ban the user for longer.");
+          document.querySelector("#siteban p[name=errorText]").textContent = "You don't have permission to ban longer than 1 month. Contact a higher staff to ban the user for longer.";
           return;
         }
         msg.permanent = true;
@@ -2959,31 +3092,31 @@ class Notification extends EventEmitter{
           case "months": factor = 1000 * 60 * 60 * 24 * 30; break;
           case "years": factor = 1000 * 60 * 60 * 24 * 365; break;
         }
-        var duration = factor * parseFloat($("#siteban input[name=durationNumber]").val());
+        var duration = factor * parseFloat(document.querySelector("#siteban input[name=durationNumber]").value);
         if (duration < 0) {
-          $("#siteban p[name=errorText]").text("Invalid duration.");
+          document.querySelector("#siteban p[name=errorText]").textContent = "Invalid duration.";
           return;
         }
         if (duration > 1000 * 60 * 60 * 24 * 30 && !gClient.permissions.siteBanAnyDuration) {
-          $("#siteban p[name=errorText]").text("You don't have permission to ban longer than 1 month. Contact a higher staff to ban the user for longer.");
+          document.querySelector("#siteban p[name=errorText]").textContent = "You don't have permission to ban longer than 1 month. Contact a higher staff to ban the user for longer.";
           return;
         }
         msg.duration = duration;
       }
 
       var reason;
-      if ($("#siteban select[name=reasonSelect]").val() === "custom") {
-        reason = $("#siteban .text[name=reasonText]").val();
+      if (document.querySelector("#siteban select[name=reasonSelect]").value === "custom") {
+        reason = document.querySelector("#siteban .text[name=reasonText]").value;
         if (reason.length === 0) {
-          $("#siteban p[name=errorText]").text("Please provide a reason.");
+          document.querySelector("#siteban p[name=errorText]").textContent = "Please provide a reason.";
           return;
         }
       } else {
-        reason = $("#siteban select[name=reasonSelect]").val();
+        reason = document.querySelector("#siteban select[name=reasonSelect]").value;
       }
       msg.reason = reason;
 
-      var note = $("#siteban textarea[name=note]").val();
+      var note = document.querySelector("#siteban textarea[name=note]").value;
       if (note) {
         msg.note = note;
       }
@@ -2991,28 +3124,28 @@ class Notification extends EventEmitter{
       closeModal();
       gClient.sendArray([msg]);
     };
-    $("#siteban .submit").click(function (evt) {
+    document.querySelector("#siteban .submit").onclick = function (evt) {
       submit();
-    });
-    $("#siteban select[name=reasonSelect]").change(function (evt) {
+    }
+    document.querySelector("#siteban select[name=reasonSelect]").onchange = function (evt) {
       if (this.value === "custom") {
-        $("#siteban .text[name=reasonText]").attr("disabled", false);
-        $("#siteban .text[name=reasonText]").val("");
+        document.querySelector("#siteban .text[name=reasonText]").disabled = false;
+        document.querySelector("#siteban .text[name=reasonText]").value = '';
       } else {
-        $("#siteban .text[name=reasonText]").attr("disabled", true);
-        $("#siteban .text[name=reasonText]").val(this.value);
+        document.querySelector("#siteban .text[name=reasonText]").disabled =  true;
+        document.querySelector("#siteban .text[name=reasonText]").value = this.value;
       }
-    });
-    $("#siteban select[name=durationUnit]").change(function (evt) {
+    }
+    document.querySelector("#siteban select[name=durationUnit]").onchange = function (evt) {
       if (this.value === "permanent") {
-        $("#siteban .text[name=durationNumber]").attr("disabled", true);
+        document.querySelector("#siteban .text[name=durationNumber]").disabled = true;
       } else {
-        $("#siteban .text[name=durationNumber]").attr("disabled", false);
+        document.querySelector("#siteban .text[name=durationNumber]").disabled = false;
       }
-    });
-    $("#siteban .text[name=id]").keypress(textKeypressEvent);
-    $("#siteban .text[name=reasonText]").keypress(textKeypressEvent);
-    $("#siteban .text[name=note]").keypress(textKeypressEvent);
+    }
+    document.querySelector("#siteban .text[name=id]").onkeypress = textKeypressEvent;
+    document.querySelector("#siteban .text[name=reasonText]").onkeypress = textKeypressEvent;
+    document.querySelector("#siteban .text[name=note]")?.addEventListener('keypress', textKeypressEvent);
     function textKeypressEvent(evt) {
       if (evt.keyCode == 13) {
         submit();
@@ -3043,16 +3176,16 @@ class Notification extends EventEmitter{
       gClient.start();
       closeModal();
     }
-    $("#account .logout-btn").click(function (evt) {
+    document.querySelector("#account .logout-btn").onclick = function (evt) {
       logout();
-    });
-    $("#account .login-discord").click(function (evt) {
+    }
+    document.querySelector("#account .login-discord").onclick = function (evt) {
       if (location.hostname === "localhost") {
         location.replace("https://discord.com/api/oauth2/authorize?client_id=926633278100877393&redirect_uri=http%3A%2F%2Flocalhost%2F%3Fcallback%3Ddiscord&response_type=code&scope=identify");
       } else {
         location.replace("https://discord.com/api/oauth2/authorize?client_id=926633278100877393&redirect_uri=https%3A%2F%2Fmppclone.com%2F%3Fcallback%3Ddiscord&response_type=code&scope=identify");
       }
-    });
+    };
   })();
 
 
@@ -3099,57 +3232,57 @@ class Notification extends EventEmitter{
       chat.receive(msg);
     });
 
-    $("#chat input").on("focus", function (evt) {
+    document.querySelector("#chat input").onfocus = function (evt) {
       releaseKeyboard();
-      $("#chat").addClass("chatting");
+      document.querySelector("#chat").classList.add("chatting");
       chat.scrollToBottom();
-    });
-    /*$("#chat input").on("blur", function(evt) {
+    }
+    /*document.querySelector("#chat input").onblur = function(evt) {
       captureKeyboard();
-      $("#chat").removeClass("chatting");
+      document.querySelector("#chat").classList.remove("chatting");
       chat.scrollToBottom();
-    });*/
-    $(document).mousedown(function (evt) {
-      if (!$("#chat").has(evt.target).length > 0) {
+    }*/
+    document.addEventListener('mousedown', function (evt) {
+      if (!document.querySelector("#chat").contains(evt.target)) {
         chat.blur();
       }
     });
     document.addEventListener("touchstart", function (event) {
       for (var i in event.changedTouches) {
         var touch = event.changedTouches[i];
-        if (!$("#chat").has(touch.target).length > 0) {
+        if (!document.querySelector("#chat").contains(touch.target).length > 0) {
           chat.blur();
         }
       }
     });
-    $(document).on("keydown", function (evt) {
-      if ($("#chat").hasClass("chatting")) {
+    document.addEventListener("keydown", function (evt) {
+      if (document.querySelector("#chat").classList.contains("chatting")) {
         if (evt.keyCode == 27) {
           chat.blur();
           if (!gNoPreventDefault) evt.preventDefault();
           evt.stopPropagation();
         } else if (evt.keyCode == 13) {
-          $("#chat input").focus();
+          document.querySelector("#chat input").focus();
         }
       } else if (!gModal && (evt.keyCode == 27 || evt.keyCode == 13)) {
-        $("#chat input").focus();
+        document.querySelector("#chat input").focus();
       }
     });
-    $("#chat input").on("keydown", function (evt) {
+    document.querySelector("#chat input").addEventListener("keydown", function (evt) {
       if (evt.keyCode == 13) {
         if (MPP.client.isConnected()) {
-          var message = $(this).val();
+          var message = this.val;
           if (message.length == 0) {
             if (gIsDming) {
               gIsDming = false;
-              $('#chat-input')[0].placeholder = 'You can chat with this thing.';
+              document.querySelector('#chat-input').placeholder = 'You can chat with this thing.';
             }
             setTimeout(function () {
               chat.blur();
             }, 100);
           } else {
             chat.send(message);
-            $(this).val("");
+            this.value = "";
             setTimeout(function () {
               chat.blur();
             }, 100);
@@ -3168,22 +3301,22 @@ class Notification extends EventEmitter{
     });
 
     // Optionally show a warning when clicking links
-    /*$("#chat ul").on("click", ".chatLink", function(ev) {
-      var $s = $(this);
+    /*document.querySelector("#chat ul").addEventListener("click", ".chatLink", function(ev) {
+      var $s = this;
 
       if(gWarnOnLinks) {
-        if(!$s.hasClass("clickedOnce")) {
-          $s.addClass("clickedOnce");
-          var id = setTimeout(() => $s.removeClass("clickedOnce"), 2000);
+        if(!$s.classList.contains("clickedOnce")) {
+          $s.classList.add("clickedOnce");
+          var id = setTimeout(() => $s.classList.remove("clickedOnce"), 2000);
           $s.data("clickTimeout", id)
           return false;
         } else {
           console.log("a")
-          $s.removeClass("clickedOnce");
+          $s.classList.remove("clickedOnce");
           var id = $s.data("clickTimeout")
           if(id !== void 0) {
             clearTimeout(id)
-            $s.removeData("clickTimeout")
+            $s.classList.remove("clickTimeout")
           }
         }
       }
@@ -3191,26 +3324,36 @@ class Notification extends EventEmitter{
 
     return {
       show: function () {
-        $("#chat").fadeIn();
+        const charBox = document.querySelector("#chat");
+        charBox.style.animation = 'fadeIn 0.4s';
+        charBox.style.display = 'block';
+        setTimeout(function(){
+          charBox.style.animation = '';
+        }, 400);
       },
 
       hide: function () {
-        $("#chat").fadeOut();
+        const charBox = document.querySelector("#chat");
+        charBox.style.animation = 'fadeOut 0.4s';
+        setTimeout(function(){
+          charBox.style.animation = '';
+          charBox.style.display = 'none';
+        }, 400);
       },
 
       clear: function () {
-        $("#chat li").remove();
+        document.querySelectorAll("#chat li").forEach(elem=>elem.remove());
       },
 
       scrollToBottom: function () {
-        var ele = $("#chat ul").get(0);
+        var ele = document.querySelector("#chat ul");
         ele.scrollTop = ele.scrollHeight - ele.clientHeight;
       },
 
       blur: function () {
-        if ($("#chat").hasClass("chatting")) {
-          $("#chat input").get(0).blur();
-          $("#chat").removeClass("chatting");
+        if (document.querySelector("#chat").classList.contains("chatting")) {
+          document.querySelector("#chat input").blur();
+          document.querySelector("#chat").classList.remove("chatting");
           chat.scrollToBottom();
           captureKeyboard();
         }
@@ -3233,60 +3376,92 @@ class Notification extends EventEmitter{
 
         //construct string for creating list element
 
-        var liString = '<li>';
-
         var isSpecialDm = false;
 
-        if (gShowTimestampsInChat) liString += '<span class="timestamp"/>';
+        var li = document.createElement('li');
 
+        let timestamp;
+        if (gShowTimestampsInChat){
+          timestmap = document.createElement('span');
+          timestamp.className = 'timestamp';
+          li.appendChild(timestamp);
+        }
+
+        let sentDm, receivedDm, otherDm;
         if (msg.m === 'dm') {
           if (msg.sender._id === gClient.user._id) { //sent dm
-            liString += '<span class="sentDm"/>';
+            sentDm = document.createElement('span');
+            sentDm.className = 'sentDm';
+            li.appendChild(sentDm);
           } else if (msg.recipient._id === gClient.user._id) { //received dm
-            liString += '<span class="receivedDm"/>';
+            receivedDm = document.createElement('span');
+            sentDm.className = 'receivedDm';
+            li.appendChild(receivedDm);
           } else { //someone else's dm
-            liString += '<span class="otherDm"/>';
+            otherDm = document.createElement('span');
+            sentDm.className = 'otherDm';
+            li.appendChild(otherDm);
             isSpecialDm = true;
           }
         }
 
-        if (isSpecialDm) {
-          if (gShowIdsInChat) liString += '<span class="id"/>';
-          liString += '<span class="name"/><span class="dmArrow"/>';
-          if (gShowIdsInChat) liString += '<span class="id2"/>';
-          liString += '<span class="name2"/><span class="message"/>';
-        } else {
-          if (gShowIdsInChat) liString += '<span class="id"/>';
-          liString += '<span class="name"/><span class="message"/>';
+        let idSpan, id2Span;
+        if (gShowIdsInChat){
+          idSpan = document.createElement('span');
+          idSpan.className = 'id';
+          li.appendChild(idSpan);
         }
 
-        var li = $(liString);
+        let nameSpan, name2Span, dmArrow, messageSpan;
+        nameSpan = document.createElement('span');
+        nameSpan.className = 'name';
+        li.appendChild(nameSpan);
+
+        if (isSpecialDm) {
+          dmArrow = document.createElement('span');
+          dmArrow.className = 'dmArrow';
+          li.appendChild(dmArrow);
+          if (gShowIdsInChat){
+            id2Span = document.createElement('span');
+            id2Span.className = 'id2';
+            li.appendChild(id2Span);
+          }
+          name2Span = document.createElement('span');
+          name2Span.className = 'name2';
+          li.appendChild(name2Span);
+        }
+        messageSpan = document.createElement('span');
+        messageSpan.className = 'message';
+        li.appendChild(messageSpan);
 
         //prefix before dms so people know it's a dm
         if (msg.m === 'dm') {
           if (msg.sender._id === gClient.user._id) { //sent dm
-            li.find(".sentDm").text('To');
-            li.find(".sentDm").css("color", '#ff55ff');
+            sentDm.textContent = 'To';
+            sentDm.style.color = '#ff55ff';
           } else if (msg.recipient._id === gClient.user._id) { //received dm
-            li.find(".receivedDm").text('From');
-            li.find(".receivedDm").css("color", '#ff55ff');
+            receivedDm.textContent = 'From';
+            receivedDm.style.color = '#ff55ff';
           } else { //someone else's dm
-            li.find(".otherDm").text('DM');
-            li.find(".otherDm").css("color", '#ff55ff');
-
-            li.find(".dmArrow").text('->');
-            li.find(".dmArrow").css("color", '#ff55ff');
+            otherDm.textContent = 'DM';
+            otherDm.style.color = '#ff55ff';
+            dmArrow.textContent = '->';
+            dmArrow.style.color = '#ff55ff';
           }
         }
 
         if (gShowTimestampsInChat) {
-          li.find(".timestamp").text(new Date(msg.t).toLocaleTimeString());
+          timestamp.textContent = new Date(msg.t).toLocaleTimeString();
         }
 
-        var message = $('<div>').text(msg.a).html().replace(/@([\da-f]{24})/g, (match, id) => {
+        let message = document.createElement('div');
+        message.textContent = msg.a;
+        message.innerHTML = message.innerHTML.replace(/@([\da-f]{24})/g, (match, id) => {
           var user = gClient.ppl[id];
           if (user) {
-            var nick = $('<div>').text(user.name).html();
+            let nick = document.createElement('div');
+            nick.textContent = user.name;
+            nick = nick.innerHTML;
             if (user.id === gClient.getOwnParticipant().id) {
               if (!tabIsActive) {
                 youreMentioned = true;
@@ -3300,55 +3475,54 @@ class Notification extends EventEmitter{
         });
 
         //apply names, colors, ids
-        li.find(".message").html(marked.parseInline(message));
+        messageSpan.innerHTML = marked.parseInline(message.innerHTML);
 
         if (msg.m === 'dm') {
-          if (!gNoChatColors) li.find(".message").css("color", msg.sender.color || "white");
+          if (!gNoChatColors) messageSpan.style.color = msg.sender.color || "white";
           if (gShowIdsInChat) {
             if (msg.sender._id === gClient.user._id) {
-              li.find(".id").text(msg.recipient._id.substring(0, 6));
+              idSpan.textContent = msg.recipient._id.substring(0, 6);
             } else {
-              li.find(".id").text(msg.sender._id.substring(0, 6));
+              idSpan.textContent = msg.sender._id.substring(0, 6);
             }
           }
 
           if (msg.sender._id === gClient.user._id) { //sent dm
-            if (!gNoChatColors) li.find(".name").css("color", msg.recipient.color || "white");
-            li.find(".name").text(msg.recipient.name + ":");
-            if (gShowChatTooltips) li[0].title = msg.recipient._id;
+            if (!gNoChatColors) nameSpan.style.color = msg.recipient.color || "white";
+            nameSpan.textContent = msg.recipient.name + ":";
+            if (gShowChatTooltips) li.title = msg.recipient._id;
           } else if (msg.recipient._id === gClient.user._id) { //received dm
-            if (!gNoChatColors) li.find(".name").css("color", msg.sender.color || "white");
-            li.find(".name").text(msg.sender.name + ":");
-
-            if (gShowChatTooltips) li[0].title = msg.sender._id;
+            if (!gNoChatColors) nameSpan.style.color = msg.sender.color || "white";
+            nameSpan.textContent = msg.sender.name + ":";
+            if (gShowChatTooltips) li.title = msg.sender._id;
           } else { //someone else's dm
-            if (!gNoChatColors) li.find(".name").css("color", msg.sender.color || "white");
-            if (!gNoChatColors) li.find(".name2").css("color", msg.recipient.color || "white");
-            li.find(".name").text(msg.sender.name);
-            li.find(".name2").text(msg.recipient.name + ":");
+            if (!gNoChatColors) nameSpan.style.color = msg.sender.color || "white";
+            if (!gNoChatColors) name2Span.style.color = msg.recipient.color || "white";
+            nameSpan.textContent = msg.sender.name;
+            name2Span.textContent = msg.recipient.name + ":";
 
-            if (gShowIdsInChat) li.find(".id").text(msg.sender._id.substring(0, 6));
-            if (gShowIdsInChat) li.find(".id2").text(msg.recipient._id.substring(0, 6));
+            if (gShowIdsInChat) idSpan.textContent = msg.sender._id.substring(0, 6);
+            if (gShowIdsInChat) id2Span.textContent = msg.recipient._id.substring(0, 6);
 
-            if (gShowChatTooltips) li[0].title = msg.sender._id;
+            if (gShowChatTooltips) li.title = msg.sender._id;
           }
         } else {
-          if (!gNoChatColors) li.find(".message").css("color", msg.p.color || "white");
-          if (!gNoChatColors) li.find(".name").css("color", msg.p.color || "white");
+          if (!gNoChatColors) messageSpan.style.color = msg.p.color || "white";
+          if (!gNoChatColors) nameSpan.style.color = msg.p.color || "white";
 
-          li.find(".name").text(msg.p.name + ":");
+          nameSpan.textContent =  msg.p.name + ":";
 
-          if (!gNoChatColors) li.find(".message").css("color", msg.p.color || "white");
-          if (gShowIdsInChat) li.find(".id").text(msg.p._id.substring(0, 6));
+          if (!gNoChatColors) messageSpan.style.color = msg.p.color || "white";
+          if (gShowIdsInChat) idSpan.textContent = msg.p._id.substring(0, 6);
 
-          if (gShowChatTooltips) li[0].title = msg.p._id;
+          if (gShowChatTooltips) li.title = msg.p._id;
         }
 
         //put list element in chat
 
-        $("#chat ul").append(li);
+        document.querySelector("#chat ul").appendChild(li);
 
-        var eles = $("#chat ul li").get();
+        var eles = document.querySelectorAll("#chat ul li");
         for (var i = 1; i <= 50 && i <= eles.length; i++) {
           eles[eles.length - i].style.opacity = 1.0 - (i * 0.03);
         }
@@ -3356,14 +3530,14 @@ class Notification extends EventEmitter{
           eles[0].style.display = "none";
         }
         if (eles.length > 256) {
-          $(eles[0]).remove();
+          eles[0].remove();
         }
 
         // scroll to bottom if not "chatting" or if not scrolled up
-        if (!$("#chat").hasClass("chatting")) {
+        if (!document.querySelector("#chat").classList.contains("chatting")) {
           chat.scrollToBottom();
         } else {
-          var ele = $("#chat ul").get(0);
+          var ele = document.querySelector("#chat ul");
           if (ele.scrollTop > ele.scrollHeight - ele.offsetHeight - 50)
             chat.scrollToBottom();
         }
@@ -4005,7 +4179,7 @@ class synthVoice{
         (function () {
           var setting = document.createElement("div");
           setting.classList = "setting";
-          setting.innerText = "Show user IDs in chat";
+          setting.textContent = "Show user IDs in chat";
           if (gShowIdsInChat) {
             setting.classList.toggle("enabled");
           }
@@ -4021,7 +4195,7 @@ class synthVoice{
         (function () {
           var setting = document.createElement("div");
           setting.classList = "setting";
-          setting.innerText = "Timestamps in chat";
+          setting.textContent = "Timestamps in chat";
           if (gShowTimestampsInChat) {
             setting.classList.toggle("enabled");
           }
@@ -4037,7 +4211,7 @@ class synthVoice{
         (function () {
           var setting = document.createElement("div");
           setting.classList = "setting";
-          setting.innerText = "No chat colors";
+          setting.textContent = "No chat colors";
           if (gNoChatColors) {
             setting.classList.toggle("enabled");
           }
@@ -4053,7 +4227,7 @@ class synthVoice{
         (function () {
           var setting = document.createElement("div");
           setting.classList = "setting";
-          setting.innerText = "Force dark background";
+          setting.textContent = "Force dark background";
           if (gNoBackgroundColor) {
             setting.classList.toggle("enabled");
           }
@@ -4074,7 +4248,7 @@ class synthVoice{
         (function () {
           var setting = document.createElement("div");
           setting.classList = "setting";
-          setting.innerText = "Output own notes to MIDI";
+          setting.textContent = "Output own notes to MIDI";
           if (gOutputOwnNotes) {
             setting.classList.toggle("enabled");
           }
@@ -4090,7 +4264,7 @@ class synthVoice{
         (function () {
           var setting = document.createElement("div");
           setting.classList = "setting";
-          setting.innerText = "Virtual Piano layout";
+          setting.textContent = "Virtual Piano layout";
           if (gVirtualPianoLayout) {
             setting.classList.toggle("enabled");
           }
@@ -4108,7 +4282,7 @@ class synthVoice{
         (function () {
           var setting = document.createElement("div");
           setting.classList = "setting";
-          setting.innerText = "Show _id tooltips";
+          setting.textContent = "Show _id tooltips";
           if (gShowChatTooltips) {
             setting.classList.toggle("enabled");
           }
@@ -4123,7 +4297,7 @@ class synthVoice{
         (function () {
           var setting = document.createElement("div");
           setting.classList = "setting";
-          setting.innerText = "Show Piano Notes";
+          setting.textContent = "Show Piano Notes";
           if (gShowPianoNotes) {
             setting.classList.toggle("enabled");
           }
@@ -4139,7 +4313,7 @@ class synthVoice{
         (function () {
           var setting = document.createElement("div");
           setting.classList = "setting";
-          setting.innerText = "Enable smooth cursors";
+          setting.textContent = "Enable smooth cursors";
           if (gSmoothCursor) {
             setting.classList.toggle("enabled");
           }
@@ -4148,9 +4322,9 @@ class synthVoice{
             localStorage.smoothCursor = setting.classList.contains("enabled");
             gSmoothCursor = setting.classList.contains("enabled");
             if (gSmoothCursor) {
-              $("#cursors").attr('smooth-cursors', '');
+              document.querySelector("#cursors").setAttribute('smooth-cursors', '');
             } else {
-              $("#cursors").removeAttr('smooth-cursors');
+              document.querySelector("#cursors").removeAttribute('smooth-cursors');
             }
             if (gSmoothCursor) {
               Object.values(gClient.ppl).forEach(function (participant) {
@@ -4180,14 +4354,14 @@ class synthVoice{
 
           const keys = Object.keys(BASIC_PIANO_SCALES); // lol
           const option = document.createElement('option');
-          option.value = option.innerText = "No highlighted notes";
+          option.value = option.textContent = "No highlighted notes";
           option.selected = !gHighlightScaleNotes;
           setting.appendChild(option);
 
           for (const key of keys) {
             const option = document.createElement('option');
             option.value = key;
-            option.innerText = key;
+            option.textContent = key;
             option.selected = key === gHighlightScaleNotes;
             setting.appendChild(option);
           }
@@ -4207,7 +4381,7 @@ class synthVoice{
         (function () {
             var setting = document.createElement("div");
           setting.classList = "setting";
-          setting.innerText = "Hide all cursors";
+          setting.textContent = "Hide all cursors";
           if (gHideAllCursors) {
             setting.classList.toggle("enabled");
           }
@@ -4216,9 +4390,9 @@ class synthVoice{
             localStorage.hideAllCursors = setting.classList.contains("enabled");
             gHideAllCursors = setting.classList.contains("enabled");
             if (gHideAllCursors) {
-                $("#cursors").hide();
+              document.querySelector("#cursors").style.display = 'none';
             } else {
-                $("#cursors").show();
+              document.querySelector("#cursors").style.display = 'block';
             }
           };
           html.appendChild(setting);
@@ -4229,7 +4403,7 @@ class synthVoice{
         /*(function() {
           var setting = document.createElement("div");
             setting.classList = "setting";
-            setting.innerText = "Warn when clicking links";
+            setting.textContent = "Warn when clicking links";
             if (gWarnOnLinks) {
                       setting.classList.toggle("enabled");
             }
@@ -4281,7 +4455,7 @@ class synthVoice{
 
         const label = document.createElement("label");
         label.setAttribute("for", id);
-        label.innerText = labelText + ": ";
+        label.textContent = labelText + ": ";
 
         html.appendChild(label);
         html.appendChild(setting);
@@ -4326,9 +4500,9 @@ class synthVoice{
               localStorage.hideChat = gHideChat;
 
               if (gHideChat) {
-                $("#chat").hide();
+                document.querySelector("#chat").style.display = 'none';
               } else {
-                $("#chat").show();
+                document.querySelector("#chat").style.display = 'block'
               }
             });
 
@@ -4365,9 +4539,9 @@ class synthVoice{
               localStorage.hidePiano = gHidePiano;
 
               if (gHidePiano) {
-                $("#piano").hide();
+                document.querySelector("#piano").style.display = 'none';
               } else {
-                $("#piano").show();
+                document.querySelector("#piano").style.display = 'block';
               }
             });
 
@@ -4382,14 +4556,14 @@ class synthVoice{
 
             const keys = Object.keys(BASIC_PIANO_SCALES); // lol
             const option = document.createElement('option');
-            option.value = option.innerText = "None";
+            option.value = option.textContent = "None";
             option.selected = !gHighlightScaleNotes;
             setting.appendChild(option);
     
             for (const key of keys) {
               const option = document.createElement('option');
               option.value = key;
-              option.innerText = key;
+              option.textContent = key;
               option.selected = key === gHighlightScaleNotes;
               setting.appendChild(option);
             }
@@ -4401,7 +4575,7 @@ class synthVoice{
             var label = document.createElement("label");
 
             label.setAttribute("for", setting.id);
-            label.innerText = "Highlighted notes: ";
+            label.textContent = "Highlighted notes: ";
 
             html.appendChild(label);
             html.appendChild(setting);
@@ -4432,7 +4606,7 @@ class synthVoice{
               gSmoothCursor = !gSmoothCursor;
               localStorage.smoothCursor = gSmoothCursor;
               if (gSmoothCursor) {
-                $("#cursors").attr("smooth-cursors", "");
+                document.querySelector("#cursors").setAttribute("smooth-cursors", "");
                 Object.values(gClient.ppl).forEach(function (participant) {
                   if (participant.cursorDiv) {
                     participant.cursorDiv.style.left = '';
@@ -4441,7 +4615,7 @@ class synthVoice{
                   }
                 });
               } else {
-                $("#cursors").removeAttr("smooth-cursors");
+                document.querySelector("#cursors").removeAttribute("smooth-cursors");
                 Object.values(gClient.ppl).forEach(function (participant) {
                   if (participant.cursorDiv) {
                     participant.cursorDiv.style.left = participant.x + "%";
@@ -4456,9 +4630,9 @@ class synthVoice{
               gHideAllCursors = !gHideAllCursors;
               localStorage.hideAllCursors = gHideAllCursors;
               if (gHideAllCursors) {
-                  $("#cursors").hide();
+                document.querySelector("#cursors").style.display = 'none';
               } else {
-                  $("#cursors").show();
+                document.querySelector("#cursors").style.display = 'block';
               }
             });
 
@@ -4642,7 +4816,7 @@ class synthVoice{
 
 
   gClient.start();
-});
+})();
 
 
 
