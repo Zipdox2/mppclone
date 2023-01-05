@@ -330,7 +330,7 @@ class Rect{
 
     var getLanguage = function () {
       if (window.navigator && navigator.language && navigator.language.length >= 2) {
-        return navigator.language.substr(0, 2).toLowerCase();
+        return navigator.language.substring(0, 2).toLowerCase();
       } else {
         return "en";
       }
