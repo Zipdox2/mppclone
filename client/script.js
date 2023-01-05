@@ -255,7 +255,8 @@ class Rect{
         "zh": "人在玩",
         "nl": "mensen spelen",
         "pl": "osób grają",
-        "hu": "ember játszik"
+        "hu": "ember játszik",
+        "hr": "ljudi sviraju"
       },
       "New Room...": {
         "pt": "Nova Sala ...",
@@ -264,7 +265,8 @@ class Rect{
         "ja": "新しい部屋",
         "zh": "新房间",
         "nl": "nieuwe Kamer",
-        "hu": "új szoba"
+        "hu": "új szoba",
+        "hr": "Nova soba..."
       },
       "room name": {
         "pt": "nome da sala",
@@ -276,7 +278,8 @@ class Rect{
         "zh": "房间名称",
         "nl": "kamernaam",
         "pl": "nazwa pokój",
-        "hu": "szoba neve"
+        "hu": "szoba neve",
+        "hr": "ime sobe"
       },
       "Visible (open to everyone)": {
         "pt": "Visível (aberto a todos)",
@@ -288,7 +291,8 @@ class Rect{
         "zh": "可见（向所有人开放）",
         "nl": "Zichtbaar (open voor iedereen)",
         "pl": "Widoczne (otwarte dla wszystkich)",
-        "hu": "Látható (nyitott mindenki számára)"
+        "hu": "Látható (nyitott mindenki számára)",
+        "hr": "Vidljivo (otvoreno za sve)"
       },
       "Enable Chat": {
         "pt": "Ativar bate-papo",
@@ -300,7 +304,8 @@ class Rect{
         "zh": "启用聊天",
         "nl": "Chat inschakelen",
         "pl": "Włącz czat",
-        "hu": "a csevegést"
+        "hu": "a csevegést",
+        "hr": "Uključi razgovor"
       },
       "Play Alone": {
         "pt": "Jogar Sozinho",
@@ -312,7 +317,8 @@ class Rect{
         "zh": "独自玩耍",
         "nl": "Speel Alleen",
         "pl": "Zagraj sam",
-        "hu": "Játssz egyedül"
+        "hu": "Játssz egyedül",
+        "hr": "Sviraj sam"
       }
       // todo: it, tr, th, sv, ar, fi, nb, da, sv, he, cs, ko, ro, vi, id, nb, el, sk, bg, lt, sl, hr
       // todo: Connecting, Offline mode, input placeholder, Notifications
