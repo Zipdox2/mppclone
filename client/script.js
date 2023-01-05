@@ -3937,22 +3937,43 @@ class Notification extends EventEmitter{
     const context = audio.context;
     let recording = false;
     const mediaStreamDest = context.createMediaStreamDestination();
-    const recordMimeType = 'audio/ogg; codecs=opus';
+    const typeOptions = [
+      {
+        ext: 'ogg',
+        mimeType: 'audio/ogg; codecs=opus'
+      },
+      {
+        ext: 'webm',
+        mimeType: 'audio/webm; codecs=opus'
+      },
+      {
+        ext: 'bin', // Crap browser, probably Safari, figure it out yourself.
+        mimeType: ''
+      }
+    ];
+    let ext, mimeType;
+    for(let type of typeOptions){
+      if(MediaRecorder.isTypeSupported(type.mimeType)){
+        ext = type.ext;
+        mimeType = type.mimeType;
+        break;
+      }
+    }
     const recorder = new MediaRecorder(mediaStreamDest.stream, {
-      mimeType: recordMimeType,
+      mimeType,
       audioBitsPerSecond: 128000
     });
 
     let recordBlob;
     recorder.ondataavailable = function(chunk){
-      recordBlob = new Blob([recordBlob, chunk.data], {type: recordMimeType});
+      recordBlob = new Blob([recordBlob, chunk.data], {type: mimeType});
     }
     recorder.onstop = function(){
       const recordingURL = URL.createObjectURL(recordBlob);
 
       const recordingNumber = parseInt(window.localStorage.getItem('recordingNumber') ?? 0) + 1;
       window.localStorage.setItem('recordingNumber', recordingNumber);
-      const recordingFilename = `MultiplayerPiano Recording ${recordingNumber}.ogg`;
+      const recordingFilename = `MultiplayerPiano Recording ${recordingNumber}.${ext}`;
 
       new Notification({ "id": "mp3", "title": "Recording finished", "html": `<a href="${recordingURL}" download="${recordingFilename}">And here it is!</a>`, "duration": 0 });
     }
@@ -3960,7 +3981,7 @@ class Notification extends EventEmitter{
     button.addEventListener("click", function (evt) {
       if (!recording) {
         // start recording
-        recordBlob = new Blob([], {type: recordMimeType});
+        recordBlob = new Blob([], {type: mimeType});
         audio.limiterNode.connect(mediaStreamDest);
         recorder.start();
         recording = true;
