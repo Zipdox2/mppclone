@@ -6,12 +6,13 @@ WebSocket.prototype.send = new Proxy(WebSocket.prototype.send, {
 });
 
 class Client extends EventEmitter {
-    constructor(uri) {
+    constructor(uri, speedymppserver = false) {
         if (window.MPP && MPP.client) {
             throw new Error("Running multiple clients in a single tab is not allowed due to abuse. Attempting to bypass this may result in an auto-ban!")
         }
         super()
 
+        this.speedymppserver = speedymppserver;
         this.uri = uri;
         this.ws = undefined;
         this.serverTimeOffset = 0;
@@ -119,6 +120,14 @@ class Client extends EventEmitter {
 
             self.emit("connect");
             self.emit("status", "Joining channel...");
+            if(self.speedymppserver){
+                var hiMsg = {m:'hi'};
+                hiMsg['🐈'] = self['🐈']++ || undefined;
+                if (localStorage.token) {
+                    hiMsg.token = localStorage.token;
+                }
+                self.sendArray([hiMsg])
+            }
         });
         this.ws.addEventListener("message", async function(evt) {
             var transmission = JSON.parse(evt.data);
@@ -173,6 +182,7 @@ class Client extends EventEmitter {
             self.removeParticipant(msg.p);
         });
         this.on("b", function(msg) {
+            if(self.speedymppserver) return;
             var hiMsg = {m:'hi'};
             hiMsg['🐈'] = self['🐈']++ || undefined;
             if (this.loginInfo) hiMsg.login = this.loginInfo;
