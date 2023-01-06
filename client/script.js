@@ -410,28 +410,53 @@ class AudioEngine{
     this.volume = vol;
   }
 
+  pause(){
+    this.paused = true;
+  }
+
   resume(){
     this.paused = false;
   }
 }
 
+class Timer{
+  constructor(cb){
+    this.timeouts = [];
+    this.cb = cb;
+  }
 
+  clear(){
+    for(let timeout of this.timeouts){
+      clearTimeout(timeout);
+    }
+    this.timeouts = [];
+  }
+
+  play(delay, args){
+    self = this;
+    let timeout;
+    timeout = setTimeout(function(){
+      self.cb(args);
+      self.timeouts = self.timeouts.filter(to=>to!=timeout);
+    }, delay);
+    this.timeouts.push(timeout);
+  }
+}
 
 class AudioEngineWeb extends AudioEngine{
   constructor(){
     super();
     this.threshold = 0;
-    this.worker = new Worker("/workerTimer.js");
     var self = this;
-    this.worker.onmessage = function (event) {
-      if (event.data.args)
-        if (event.data.args.action == 0) {
-          self.actualPlay(event.data.args.id, event.data.args.vol, event.data.args.time, event.data.args.part_id);
+    this.timer = new Timer(function (args) {
+      if (args)
+        if (args.action == 0) {
+          self.actualPlay(args.id, args.vol, args.time, args.part_id);
         }
         else {
-          self.actualStop(event.data.args.id, event.data.args.time, event.data.args.part_id);
+          self.actualStop(args.id, args.time, args.part_id);
         }
-    }
+    });
   }
 
   init(cb){
@@ -521,12 +546,13 @@ class AudioEngineWeb extends AudioEngine{
   }
 
   play(id, vol, delay_ms, part_id) {
+    if (this.paused) return;
     if (!this.sounds.hasOwnProperty(id)) return;
     var time = this.context.currentTime + (delay_ms / 1000); //calculate time on note receive.
     var delay = delay_ms - this.threshold;
     if (delay <= 0) this.actualPlay(id, vol, time, part_id);
     else {
-      this.worker.postMessage({ delay: delay, args: { action: 0/*play*/, id: id, vol: vol, time: time, part_id: part_id } }); // but start scheduling right before play.
+      this.timer.play(delay, { action: 0/*play*/, id: id, vol: vol, time: time, part_id: part_id }); // but start scheduling right before play.
     }
   }
 
@@ -552,7 +578,20 @@ class AudioEngineWeb extends AudioEngine{
     var delay = delay_ms - this.threshold;
     if (delay <= 0) this.actualStop(id, time, part_id);
     else {
-      this.worker.postMessage({ delay: delay, args: { action: 1/*stop*/, id: id, time: time, part_id: part_id } });
+      this.timer.play(delay, { action: 1/*stop*/, id: id, time: time, part_id: part_id });
+    }
+  }
+
+  panic(){
+    this.timer.clear();
+    for(let id in this.playings){
+      if(!this.playings[id]) continue;
+      this.playings[id].source.stop(0);
+      this.playings[id].gain.gain.value = 0;
+      if(this.playings[id].voice){
+        this.playings[id].voice.stop(0);
+      }
+      this.playings[id] = null;
     }
   }
 
@@ -562,7 +601,7 @@ class AudioEngineWeb extends AudioEngine{
   }
 
   resume(){
-    this.paused = false;
+    super.resume();
     this.context.resume();
   }
 }
@@ -1974,10 +2013,12 @@ class Piano{
 
 
 
-  var Note = function (note, octave) {
-    this.note = note;
-    this.octave = octave || 0;
-  };
+  class Note{
+    constructor(note, octave){
+      this.note = note;
+      this.octave = octave || 0;
+    }
+  }
 
 
 
@@ -2761,6 +2802,7 @@ class Notification extends EventEmitter{
 
   document.querySelector("#room > .info").textContent = "--";
   gClient.on("ch", function (msg) {
+    gPiano.audio.resume();
     var channel = msg.ch;
     var info = document.querySelector("#room > .info");
     info.textContent = channel._id;
@@ -2981,6 +3023,8 @@ class Notification extends EventEmitter{
     }
 
     gClient.setChannel(name, settings);
+    gPiano.audio.panic();
+    gPiano.audio.pause();
 
     var t = 0, d = 100;
     const pianoElem = document.querySelector("#piano");
