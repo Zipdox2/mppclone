@@ -1034,7 +1034,7 @@ class SoundSelector{
 
       if (added) return console.warn("Sounds already added!!"); //no adding soundpacks twice D:<
 
-      if (obj.url.substr(obj.url.length - 1) != "/") obj.url = obj.url + "/";
+      if (obj.url.substring(obj.url.length - 1) != "/") obj.url = obj.url + "/";
       var html = document.createElement("li");
       html.classList = "pack";
       html.textContent = obj.name + " (" + obj.keys.length + " keys)";
@@ -1277,7 +1277,7 @@ class Piano{
       gHeldNotes[id] = true;
       gSustainedNotes[id] = true;
       gPiano.play(id, vol !== undefined ? vol : DEFAULT_VELOCITY, gClient.getOwnParticipant(), 0);
-      gClient.startNote(id, vol);
+      gClient.startNote(id, vol, MIDI_KEY_NAMES.indexOf(id) + 9 - MIDI_TRANSPOSE);
     }
   }
 
@@ -1289,7 +1289,7 @@ class Piano{
       } else {
         if (gNoteQuota.spend(1)) {
           gPiano.stop(id, gClient.getOwnParticipant(), 0);
-          gClient.stopNote(id);
+          gClient.stopNote(id, MIDI_KEY_NAMES.indexOf(id) + 9 - MIDI_TRANSPOSE);
           gSustainedNotes[id] = false;
         }
       }
@@ -1345,7 +1345,7 @@ class Piano{
 
   function getRoomNameFromURL() {
     var channel_id = decodeURIComponent(window.location.pathname);
-    if (channel_id.substr(0, 1) == "/") channel_id = channel_id.substr(1);
+    if (channel_id.substring(0, 1) == "/") channel_id = channel_id.substring(1);
     if (!channel_id) {
       channel_id = getParameterByName("c");
     }
@@ -1556,6 +1556,52 @@ class Piano{
         nameElem.style.backgroundColor = color;
       }
     });
+    gClient.on("offer", function(offer){
+      const notifElem = document.createElement('div');
+      notifElem.textContent = `${offer.part.name} wants to make a P2P connection.\n(this exposes your public IP address)`;
+      notifElem.insertAdjacentHTML('beforeend', '<br>');
+      const acceptBtn = document.createElement('button');
+      acceptBtn.textContent = 'Accept';
+      let notif;
+      acceptBtn.onclick = function(){
+        offer.accept();
+        notif.close();
+      }
+      notifElem.appendChild(acceptBtn);
+      notif = new Notification({
+        title: "P2P request",
+        html: notifElem,
+        target: "#piano",
+        duration: 60000
+      });
+    });
+    gClient.on("answer", function(offer){
+      const notifElem = document.createElement('div');
+      notifElem.textContent = `${offer.part.name} accepted your P2P connection request.\nDo you want to connect?\n(this exposes your public IP address)`;
+      notifElem.insertAdjacentHTML('beforeend', '<br>');
+      const acceptBtn = document.createElement('button');
+      acceptBtn.textContent = 'Connect';
+      let notif;
+      acceptBtn.onclick = function(){
+        offer.accept()
+        notif.close();
+      };
+      notifElem.appendChild(acceptBtn);
+      notif = new Notification({
+        title: "P2P response",
+        html: notifElem,
+        target: "#piano",
+        duration: 60000
+      });
+    });
+    gClient.on("p2pclosed", function(part){
+      notif = new Notification({
+        title: "P2P disconnected",
+        text: `P2P connection with ${part.name} closed.`,
+        target: "#piano",
+        duration: 10000
+      });
+    });
     gClient.on("ch", function (msg) {
       for (var id in gClient.ppl) {
         if (gClient.ppl.hasOwnProperty(id)) {
@@ -1686,10 +1732,20 @@ class Piano{
   gClient.on("n", function (msg) {
     var t = msg.t - gClient.serverTimeOffset + TIMING_TARGET - Date.now();
     var participant = gClient.findParticipantById(msg.p);
+    if(participant.p2p && !msg.p2p) return;
     if (gPianoMutes.indexOf(participant._id) !== -1)
       return;
     for (var i = 0; i < msg.n.length; i++) {
       var note = msg.n[i];
+      if(msg.p2p){
+        // we'll ignore the time for now
+        if(note.s){
+          gPiano.stop(MIDI_KEY_NAMES[note.n - 9 + MIDI_TRANSPOSE], participant, 0);
+        }else{
+          gPiano.play(MIDI_KEY_NAMES[note.n - 9 + MIDI_TRANSPOSE], note.v, participant, 0);
+        }
+        continue;
+      }
       var ms = t + (note.d || 0);
       if (ms < 0) {
         ms = 0;
@@ -1823,7 +1879,7 @@ class Piano{
   // Don't foget spin
   gClient.on("ch", function (msg) {
     var chidlo = msg.ch._id.toLowerCase();
-    if (chidlo === "spin" || chidlo.substr(-5) === "/spin") {
+    if (chidlo === "spin" || chidlo.substring(-5) === "/spin") {
       document.querySelector("#piano").classList.add("spin");
     } else {
       document.querySelector("#piano").classList.remove("spin");
@@ -2500,6 +2556,16 @@ class Piano{
           document.querySelector('#chat-input').placeholder = 'Direct messaging ' + part.name + '.';
         }
       }
+      let menuItem = document.createElement('div');
+      menuItem.className = 'menu-item';
+      menuItem.textContent = part.p2p ? 'Close P2P' : 'Request P2P';
+      menu.appendChild(menuItem);
+      menuItem.onmousedown = menuItem.ontouchstart = function (evt) {
+        if(!part.p2p)
+          gClient.requestP2P(part._id);
+        else
+          gClient.closeP2P(part._id);
+      }
       if (gCursorHides.indexOf(part._id) == -1) {
         let menuItem = document.createElement('div');
         menuItem.className = 'menu-item';
@@ -2524,7 +2590,7 @@ class Piano{
         }
       }
 
-      let menuItem = document.createElement('div');
+      menuItem = document.createElement('div');
       menuItem.className = 'menu-item';
       menuItem.textContent = 'Mention';
       menu.appendChild(menuItem);
@@ -3218,8 +3284,9 @@ class Notification extends EventEmitter{
   //Accounts
 
   (function () {
+    const discordClientID = '926633278100877393';
     function logout() {
-      delete localStorage.token;
+      localStorage.removeItem('token');
       gClient.stop();
       gClient.start();
       closeModal();
@@ -3228,11 +3295,7 @@ class Notification extends EventEmitter{
       logout();
     }
     document.querySelector("#account .login-discord").onclick = function (evt) {
-      if (location.hostname === "localhost") {
-        location.replace("https://discord.com/api/oauth2/authorize?client_id=926633278100877393&redirect_uri=http%3A%2F%2Flocalhost%2F%3Fcallback%3Ddiscord&response_type=code&scope=identify");
-      } else {
-        location.replace("https://discord.com/api/oauth2/authorize?client_id=926633278100877393&redirect_uri=https%3A%2F%2Fmppclone.com%2F%3Fcallback%3Ddiscord&response_type=code&scope=identify");
-      }
+      location.replace(`https://discord.com/api/oauth2/authorize?client_id=${discordClientID}&redirect_uri=${encodeURIComponent(window.location.origin)}%2F%3Fcallback%3Ddiscord&response_type=code&scope=identify`);
     };
   })();
 

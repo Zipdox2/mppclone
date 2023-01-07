@@ -5,6 +5,132 @@ WebSocket.prototype.send = new Proxy(WebSocket.prototype.send, {
     }
 });
 
+const rtcConfig = {
+    iceServers: [
+      {
+        urls: 'stun:stun.l.google.com:19302'
+      }
+    ]
+  }
+  
+  
+class P2PConnection{
+    constructor(iceCb, noteCb, closeCb){
+        const self = this;
+
+        this.conn = new RTCPeerConnection(rtcConfig);
+        this.conn.onclose
+        this.conn.createDataChannel('dummy'); // You need at least one track or channel to connect
+        this.iceCb = iceCb;
+        this.closeCb = closeCb;
+
+        this.conn.onicecandidate = function(event){
+            if(!event.candidate) return;
+            if(typeof self.sendIceCandidates == 'object'){
+                self.sendIceCandidates.push(event.candidate);
+            }else{
+                self.iceCb(event.candidate);
+            }
+        }
+        function midiMsgCb(event){
+            if(event.data.length < 11) return;
+            const view = new DataView(event.data);
+
+            const controlByte = view.getUint8(8);
+            if(![0b100, 0b100].includes((controlByte >> 5))) return;
+            const onOff = (controlByte >> 4) & 1;
+            const channel = controlByte & 0b1111;
+            const note = view.getUint8(9) & 0b1111111;
+            const velocity = view.getUint8(10) & 0b1111111;
+
+            const time = view.getFloat64(0);
+
+            noteCb(time, onOff, channel, note, velocity);
+        }
+        this.conn.oniceconnectionstatechange = function(){
+            if(self.conn.iceConnectionState == 'closed') return closeCb();
+            if(['connected', 'completed'].includes(self.conn.iceConnectionState) && self.offering){
+                self.midiChannel = self.conn.createDataChannel('midi');
+                self.midiChannel.binaryType = "arraybuffer";
+                self.midiChannel.onmessage = midiMsgCb;
+                self.midiChannel.onclose = ()=>{closeCb()};
+            }
+        }
+        this.conn.ondatachannel = function(event){
+            if(event.channel.label != 'midi') return;
+            self.midiChannel = event.channel;
+            self.midiChannel.binaryType = "arraybuffer";
+            self.midiChannel.onmessage = midiMsgCb;
+            self.midiChannel.onclose = ()=>{closeCb()};
+
+        }
+        this.recIceCandidates = [];
+        this.sendIceCandidates = [];
+    }
+  
+    sendNote(time, onOff, channel, note, velocity){
+        if(!this.midiChannel) return;
+        if(this.midiChannel.readyState != 'open') return;
+        const buf = new ArrayBuffer(11);
+        const view = new DataView(buf);
+
+        view.setFloat64(0, time);
+
+        view.setUint8(8, 0b10000000 | ((onOff & 1) << 4) | (channel & 0b1111));
+        view.setUint8(9, (note & 0b1111111));
+        view.setUint8(10, (velocity & 0b1111111));
+
+        this.midiChannel.send(buf);
+    }
+
+    close(){
+        if(this.midiChannel) if(this.midiChannel.readyState != 'closed') this.midiChannel.close();
+        this.conn.close();
+    }
+
+    async createOffer(){
+        this.offering = true;
+        const offer = await this.conn.createOffer();
+        await this.conn.setLocalDescription(offer);
+        return offer;
+    }
+  
+    async createAnswer(offer){
+        await this.conn.setRemoteDescription(offer);
+        const answer = await this.conn.createAnswer();
+        await this.conn.setLocalDescription(answer);
+        while(this.recIceCandidates.length > 0){
+            await this.conn.addIceCandidate(this.recIceCandidates.shift());
+        }
+        delete this.recIceCandidates;
+        while(this.sendIceCandidates.length > 0){
+            this.iceCb(this.sendIceCandidates.shift());
+        }
+        delete this.sendIceCandidates;
+        return answer;
+    }
+    
+    async acceptAnswer(answer){
+        await this.conn.setRemoteDescription(answer);
+        while(this.recIceCandidates.length > 0){
+            await this.conn.addIceCandidate(this.recIceCandidates.shift());
+        }
+        delete this.recIceCandidates;
+        while(this.sendIceCandidates.length > 0){
+            this.iceCb(this.sendIceCandidates.shift());
+        }
+        delete this.sendIceCandidates;
+    }
+  
+    async addIceCandidate(ice){
+        if(typeof this.recIceCandidates == 'object'){
+            this.recIceCandidates.push(ice);
+        }else{
+            await this.conn.addIceCandidate(ice);
+        }
+    }
+}
+
 class Client extends EventEmitter {
     constructor(uri, speedymppserver = false) {
         if (window.MPP && MPP.client) {
@@ -201,6 +327,143 @@ class Client extends EventEmitter {
             }
             self.sendArray([hiMsg])
         });
+        this.on("custom", function(msg){
+            const self = this;
+
+            if(typeof msg.data != 'object' || msg.data == null) return;
+            if(typeof msg.data.d != 'object' || msg.data.d == null) return;
+            if(!this.ppl.hasOwnProperty(msg.p)) return;
+            const part = this.ppl[msg.p];
+ 
+            switch(msg.data.t){
+                case 'offer':
+                    self.emit('offer', {
+                        part,
+                        accept: async function(){
+                            if(!self.ppl.hasOwnProperty(msg.p)) return;
+                            function iceCb(cand){
+                                self.sendArray([{
+                                    m: 'custom',
+                                    target: {
+                                        mode: 'id',
+                                        id: msg.p,
+                                    },
+                                    data: {
+                                        t: 'ice',
+                                        d: cand
+                                    }
+                                }]);
+                            }
+                            function noteCb(time, onOff, channel, note, velocity){
+                                self.emit("n", {
+                                    p2p: true,
+                                    m: 'n',
+                                    t: time,
+                                    p: msg.p,
+                                    n: [{
+                                        n: note,
+                                        s: !onOff,
+                                        v: velocity / 127
+                                    }]
+                                });
+                            }
+                            function closedCb(){
+                                delete part.p2p;
+                                self.emit('p2pclosed', part);
+                            }
+                            part.p2p = new P2PConnection(iceCb, noteCb, closedCb);
+                            const answer = await part.p2p.createAnswer(msg.data.d);
+                            self.sendArray([{
+                                m: 'custom',
+                                target: {
+                                    mode: 'id',
+                                    id: msg.p,
+                                },
+                                data: {
+                                    t: 'answer',
+                                    d: answer
+                                }
+                            }]);
+                        }
+                    });
+                    break;
+                case 'answer':
+                    if(!part.p2p) return;
+                    self.emit('answer', {
+                        part,
+                        accept: async function(){
+                            if(!self.ppl.hasOwnProperty(msg.p)) return;
+                            await part.p2p.acceptAnswer(msg.data.d);
+                        }
+                    });
+                    break;
+                case 'ice':
+                    if(!part.p2p) return;
+                    part.p2p.addIceCandidate(msg.data.d);
+                    break;
+                default:
+                    return;
+            }
+        });
+    };
+
+    async requestP2P(id){
+        if(!this.ppl.hasOwnProperty(id)) return;
+
+        const self = this;
+        const part = this.ppl[id];
+
+        function iceCb(cand){
+            self.sendArray([{
+                m: 'custom',
+                target: {
+                    mode: 'id',
+                    id,
+                },
+                data: {
+                    t: 'ice',
+                    d: cand
+                }
+            }]);
+        }
+        function noteCb(time, onOff, channel, note, velocity){
+            self.emit("n", {
+                p2p: true,
+                m: 'n',
+                t: time,
+                p: id,
+                n: [{
+                    n: note,
+                    s: !onOff,
+                    v: velocity / 127
+                }]
+            });
+        }
+        function closedCb(){
+            delete part.p2p;
+            self.emit('p2pclosed', part);
+        }
+        part.p2p = new P2PConnection(iceCb, noteCb, closedCb);
+        const offer = await part.p2p.createOffer();
+        self.sendArray([{
+            m: 'custom',
+            target: {
+                mode: 'id',
+                id,
+            },
+            data: {
+                t: 'offer',
+                d: offer
+            }
+        }]);
+    };
+
+    async closeP2P(id){
+        if(!this.ppl.hasOwnProperty(id)) return;
+        const part = this.ppl[id];
+        if(!part.p2p) return;
+        part.p2p.close();
+        delete part.p2p;
     };
 
     send(raw) {
@@ -306,6 +569,7 @@ class Client extends EventEmitter {
     removeParticipant(id) {
         if(this.ppl.hasOwnProperty(id)) {
             var part = this.ppl[id];
+            if(part.p2p) part.p2p.close();
             delete this.ppl[id];
             this.emit("participant removed", part);
             this.emit("count", this.countParticipants());
@@ -351,7 +615,11 @@ class Client extends EventEmitter {
         // if(echo) this.serverTimeOffset += echo - now;    // mostly round trip time offset
     };
 
-    startNote(note, vel) {
+    startNote(note, vel, midiNote) {
+        for(let userId in this.ppl){
+            let user = this.ppl[userId]
+            if(user.p2p) user.p2p.sendNote(Date.now() / 1000, 1, 0, midiNote, Math.round((vel ?? 0.5) * 127));
+        }
         if (typeof note !== 'string') return;
         if(this.isConnected()) {
             var vel = typeof vel === "undefined" ? undefined : +vel.toFixed(3);
@@ -364,8 +632,12 @@ class Client extends EventEmitter {
         }
     };
 
-    stopNote(note) {
+    stopNote(note, midiNote) {
         if (typeof note !== 'string') return;
+        for(let userId in this.ppl){
+            let user = this.ppl[userId]
+            if(user.p2p) user.p2p.sendNote(Date.now() / 1000, 0, 0, midiNote, 0);
+        }
         if(this.isConnected()) {
             if(!this.noteBufferTime) {
                 this.noteBufferTime = Date.now();
