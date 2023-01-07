@@ -7,15 +7,15 @@ WebSocket.prototype.send = new Proxy(WebSocket.prototype.send, {
 
 const rtcConfig = {
     iceServers: [
-      {
-        urls: 'stun:stun.l.google.com:19302'
-      }
+        {
+            urls: 'stun:stun.l.google.com:19302'
+        }
     ]
-  }
+}
   
   
 class P2PConnection{
-    constructor(iceCb, noteCb, closeCb){
+    constructor(iceCb, noteCb, closeCb, connectedCb){
         const self = this;
 
         this.conn = new RTCPeerConnection(rtcConfig);
@@ -54,6 +54,7 @@ class P2PConnection{
                 self.midiChannel.binaryType = "arraybuffer";
                 self.midiChannel.onmessage = midiMsgCb;
                 self.midiChannel.onclose = ()=>{closeCb()};
+                connectedCb();
             }
         }
         this.conn.ondatachannel = function(event){
@@ -62,7 +63,7 @@ class P2PConnection{
             self.midiChannel.binaryType = "arraybuffer";
             self.midiChannel.onmessage = midiMsgCb;
             self.midiChannel.onclose = ()=>{closeCb()};
-
+            connectedCb();
         }
         this.recIceCandidates = [];
         this.sendIceCandidates = [];
@@ -371,7 +372,10 @@ class Client extends EventEmitter {
                                 delete part.p2p;
                                 self.emit('p2pclosed', part);
                             }
-                            part.p2p = new P2PConnection(iceCb, noteCb, closedCb);
+                            function connectedCb(){
+                                self.emit('p2pconnected', part);
+                            }
+                            part.p2p = new P2PConnection(iceCb, noteCb, closedCb, connectedCb);
                             const answer = await part.p2p.createAnswer(msg.data.d);
                             self.sendArray([{
                                 m: 'custom',
@@ -443,7 +447,10 @@ class Client extends EventEmitter {
             delete part.p2p;
             self.emit('p2pclosed', part);
         }
-        part.p2p = new P2PConnection(iceCb, noteCb, closedCb);
+        function connectedCb(){
+            self.emit('p2pconnected', part);
+        }
+        part.p2p = new P2PConnection(iceCb, noteCb, closedCb, connectedCb);
         const offer = await part.p2p.createOffer();
         self.sendArray([{
             m: 'custom',

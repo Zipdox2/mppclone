@@ -1558,7 +1558,9 @@ class Piano{
     });
     gClient.on("offer", function(offer){
       const notifElem = document.createElement('div');
-      notifElem.textContent = `${offer.part.name} wants to make a P2P connection.\n(this exposes your public IP address)`;
+      notifElem.insertAdjacentText('beforeend', `${offer.part.name} wants to make a P2P connection.`);
+      notifElem.insertAdjacentHTML('beforeend', '<br>');
+      notifElem.insertAdjacentText('beforeend', '(this reveals your IP address to them)');
       notifElem.insertAdjacentHTML('beforeend', '<br>');
       const acceptBtn = document.createElement('button');
       acceptBtn.textContent = 'Accept';
@@ -1575,15 +1577,17 @@ class Piano{
         duration: 60000
       });
     });
-    gClient.on("answer", function(offer){
+    gClient.on("answer", function(answer){
       const notifElem = document.createElement('div');
-      notifElem.textContent = `${offer.part.name} accepted your P2P connection request.\nDo you want to connect?\n(this exposes your public IP address)`;
+      notifElem.insertAdjacentText('beforeend', `${answer.part.name} accepted your P2P connection request.`);
+      notifElem.insertAdjacentHTML('beforeend', '<br>');
+      notifElem.insertAdjacentText('beforeend', '(connecting reveals your IP address to them)');
       notifElem.insertAdjacentHTML('beforeend', '<br>');
       const acceptBtn = document.createElement('button');
       acceptBtn.textContent = 'Connect';
       let notif;
       acceptBtn.onclick = function(){
-        offer.accept()
+        answer.accept()
         notif.close();
       };
       notifElem.appendChild(acceptBtn);
@@ -1595,9 +1599,17 @@ class Piano{
       });
     });
     gClient.on("p2pclosed", function(part){
-      notif = new Notification({
+      new Notification({
         title: "P2P disconnected",
         text: `P2P connection with ${part.name} closed.`,
+        target: "#piano",
+        duration: 10000
+      });
+    });
+    gClient.on("p2pconnected", function(part){
+      new Notification({
+        title: "P2P connected",
+        text: `P2P connection with ${part.name} established.`,
         target: "#piano",
         duration: 10000
       });
